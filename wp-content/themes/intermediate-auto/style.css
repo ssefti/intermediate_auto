@@ -54,6 +54,14 @@ header.nav nav a{color:#f0f0f0;text-decoration:none;font-weight:600;font-size:15
 header.nav nav a.active,header.nav nav a:hover{color:var(--gold2);border-color:var(--gold)}
 .nav-cta{padding:11px 22px!important}
 
+/* Bouton hamburger (caché sur PC) */
+.nav-toggle{display:none;background:transparent;border:0;cursor:pointer;width:46px;height:40px;padding:8px;margin-left:auto}
+.nav-toggle span{display:block;width:100%;height:3px;border-radius:3px;background:var(--gold2);transition:transform .3s ease,opacity .2s ease}
+.nav-toggle span+span{margin-top:6px}
+.nav-toggle[aria-expanded="true"] span:nth-child(1){transform:translateY(9px) rotate(45deg)}
+.nav-toggle[aria-expanded="true"] span:nth-child(2){opacity:0}
+.nav-toggle[aria-expanded="true"] span:nth-child(3){transform:translateY(-9px) rotate(-45deg)}
+
 /* Footer */
 footer.site{background:var(--black);color:#b8b8b8;padding:60px 0 26px;margin-top:0}
 footer.site .cols{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;gap:32px}
@@ -76,12 +84,22 @@ footer.site .copy{border-top:1px solid #333;margin-top:40px;padding-top:22px;tex
 
 /* Responsive */
 @media(max-width:900px){
-  header.nav .wrap{height:auto;padding:12px 26px;flex-wrap:wrap}
-  header.nav nav{width:100%;margin:8px 0 0}
+  header.nav .wrap{height:auto;padding:12px 20px;flex-wrap:wrap}
+  .nav-toggle{display:block}
+  header.nav .logo{height:60px}
+  /* Menu replié par défaut, déplié quand .menu-open */
+  header.nav nav{display:none;width:100%;flex-direction:column;gap:0;margin:10px 0 0}
+  header.nav nav a{padding:13px 4px;border-bottom:1px solid #2c2c2c;font-size:16px}
+  .nav-cta{display:none;width:100%;text-align:center;margin-top:10px}
+  header.nav.menu-open nav{display:flex}
+  header.nav.menu-open .nav-cta{display:block}
   .footer-hide-mobile{display:none}
   footer.site .cols{grid-template-columns:1fr 1fr}
 }
 @media(max-width:640px){
   .sec{padding:50px 0}
   .sec-c h2{font-size:26px}
+  /* Barre du haut : centrée et empilée pour éviter le débordement */
+  .topbar .wrap{flex-direction:column;justify-content:center;text-align:center;height:auto;padding:6px 16px;gap:2px;line-height:1.4}
+  .topbar a{margin:0 6px}
 }

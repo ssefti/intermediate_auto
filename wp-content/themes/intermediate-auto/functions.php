@@ -18,7 +18,7 @@ function ia_setup() {
 add_action('after_setup_theme', 'ia_setup');
 
 function ia_assets() {
-    wp_enqueue_style('intermediate-auto', get_stylesheet_uri(), array(), '1.0');
+    wp_enqueue_style('intermediate-auto', get_stylesheet_uri(), array(), '1.1');
 }
 add_action('wp_enqueue_scripts', 'ia_assets');
 
@@ -50,7 +50,7 @@ function ia_nav() {
     $current = '';
     if (is_page()) $current = get_post_field('post_name', get_queried_object_id());
     if (is_front_page()) $current = '';
-    echo '<nav>';
+    echo '<nav id="primary-nav">';
     foreach ($items as $slug => $label) {
         $url = $slug === '' ? home_url('/') : ia_url($slug);
         $active = ($slug === $current) ? ' class="active"' : '';
