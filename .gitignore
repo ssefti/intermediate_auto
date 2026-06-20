@@ -1,0 +1,29 @@
+# ===== Intermediate Auto — versionner UNIQUEMENT le thème + le plugin maison =====
+
+# 1) Tout ignorer par défaut
+/*
+
+# 2) Garder les fichiers du dépôt
+!.gitignore
+!.cpanel.yml
+!README.md
+
+# 3) Descendre dans wp-content mais y filtrer
+!wp-content
+/wp-content/*
+!/wp-content/themes
+!/wp-content/plugins
+
+# 4) Thèmes : garder seulement le nôtre
+/wp-content/themes/*
+!/wp-content/themes/intermediate-auto
+
+# 5) Plugins : garder seulement le nôtre
+/wp-content/plugins/*
+!/wp-content/plugins/intermediate-auto-core
+
+# 6) Sécurité (même dans les dossiers gardés)
+**/node_modules/
+**/.DS_Store
+**/Thumbs.db
+*.log

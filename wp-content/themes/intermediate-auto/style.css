@@ -1,0 +1,87 @@
+/*
+Theme Name: Intermediate Auto
+Theme URI: https://intermediate-auto.com
+Description: Thème sur mesure pour Intermediate Auto — intermédiaire automobile en Algérie. Design or/noir, catalogue véhicules connecté au plugin Intermediate Auto Core, simulateur de frais de douane.
+Author: Intermediate Auto
+Version: 1.0
+Requires at least: 6.0
+Tested up to: 7.0
+Requires PHP: 7.4
+Text Domain: intermediate-auto
+*/
+
+/* ===== Charte Intermediate Auto ===== */
+:root{
+  --gold:#D4AF37; --gold2:#FFD315; --orange:#E07B20; --orange-d:#C05A00;
+  --black:#1A1A1A; --ink:#333; --muted:#777; --line:#e7e9ee;
+  --bg:#FFFFFF; --bg2:#F4F6F8;
+  --grad:linear-gradient(135deg,#D4AF37 0%,#E07B20 100%);
+  --shadow:0 14px 40px rgba(20,20,20,.10);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6;margin:0}
+img{max-width:100%;height:auto;display:block}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px}
+h1,h2,h3{font-weight:800;color:var(--black);letter-spacing:-.3px;line-height:1.15;margin:0}
+p{margin:0}
+.gold{color:var(--gold)}
+.btn{display:inline-block;border:0;cursor:pointer;font-weight:700;border-radius:999px;padding:14px 28px;font-size:15px;text-decoration:none;line-height:1.2}
+.btn-gold{background:var(--grad);color:#fff;box-shadow:0 10px 24px rgba(224,123,32,.35);position:relative;overflow:hidden}
+.btn-gold:after{content:"";position:absolute;top:0;left:-60%;width:38%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-20deg);animation:shine 4s ease-in-out infinite}
+.btn-ghost{background:transparent;color:#fff;border:2px solid var(--gold)}
+.btn-dark{background:var(--black);color:#fff}
+.eyebrow{display:inline-block;color:var(--orange-d);font-weight:800;letter-spacing:2px;text-transform:uppercase;font-size:12.5px;margin-bottom:12px}
+.sec{padding:78px 0}
+.sec-c{text-align:center;max-width:680px;margin:0 auto 46px}
+.sec-c h2{font-size:34px}
+.sec-c p{color:var(--muted);margin-top:12px;font-size:16px}
+.badge{display:inline-block;background:var(--grad);color:#fff;font-size:11px;font-weight:800;padding:5px 12px;border-radius:999px;letter-spacing:1px}
+
+/* Topbar */
+.topbar{background:var(--black);color:#cfcfcf;font-size:13px}
+.topbar .wrap{display:flex;justify-content:space-between;align-items:center;height:42px;flex-wrap:wrap}
+.topbar a{color:#cfcfcf;text-decoration:none;margin-left:14px}
+.topbar .gold{color:var(--gold2)}
+
+/* Header */
+header.nav{background:var(--black);border-bottom:2px solid var(--gold);position:sticky;top:0;z-index:50}
+header.nav .wrap{display:flex;align-items:center;height:90px;gap:30px}
+header.nav .logo{height:78px;mix-blend-mode:lighten}
+header.nav nav{display:flex;gap:26px;margin-left:auto;flex-wrap:wrap}
+header.nav nav a{color:#f0f0f0;text-decoration:none;font-weight:600;font-size:15px;padding:6px 0;border-bottom:2px solid transparent}
+header.nav nav a.active,header.nav nav a:hover{color:var(--gold2);border-color:var(--gold)}
+.nav-cta{padding:11px 22px!important}
+
+/* Footer */
+footer.site{background:var(--black);color:#b8b8b8;padding:60px 0 26px;margin-top:0}
+footer.site .cols{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;gap:32px}
+footer.site h4{color:#fff;font-size:15px;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px}
+footer.site a{color:#b8b8b8;text-decoration:none;display:block;padding:5px 0}
+footer.site a:hover{color:var(--gold2)}
+footer.site .logo{height:74px;margin-bottom:16px;mix-blend-mode:lighten}
+footer.site .copy{border-top:1px solid #333;margin-top:40px;padding-top:22px;text-align:center;font-size:13px;color:#888}
+
+/* WhatsApp flottant */
+.wa-float{position:fixed;right:22px;bottom:22px;width:58px;height:58px;border-radius:50%;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 10px 24px rgba(0,0,0,.25);z-index:60;text-decoration:none;transition:transform .2s}
+.wa-float:hover{transform:scale(1.08)}
+
+/* Animations communes */
+@keyframes shine{0%{left:-60%}60%,100%{left:130%}}
+@keyframes upIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.14)}}
+.js .reveal.in{animation:upIn .75s cubic-bezier(.2,.7,.2,1) both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Responsive */
+@media(max-width:900px){
+  header.nav .wrap{height:auto;padding:12px 26px;flex-wrap:wrap}
+  header.nav nav{width:100%;margin:8px 0 0}
+  .footer-hide-mobile{display:none}
+  footer.site .cols{grid-template-columns:1fr 1fr}
+}
+@media(max-width:640px){
+  .sec{padding:50px 0}
+  .sec-c h2{font-size:26px}
+}

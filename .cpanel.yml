@@ -1,0 +1,9 @@
+---
+deployment:
+  tasks:
+    - export THEME=/home/wybvhabd/public_html/wp-content/themes/intermediate-auto
+    - export PLUGIN=/home/wybvhabd/public_html/wp-content/plugins/intermediate-auto-core
+    - /bin/mkdir -p $THEME
+    - /bin/mkdir -p $PLUGIN
+    - /bin/cp -R wp-content/themes/intermediate-auto/. $THEME/
+    - /bin/cp -R wp-content/plugins/intermediate-auto-core/. $PLUGIN/
