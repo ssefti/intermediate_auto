@@ -4,8 +4,8 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('IA_WHATSAPP', '213560020837');     // numéro WhatsApp (format international)
-define('IA_PHONE',    '0560 02 08 37');
+define('IA_WHATSAPP', '213775765989');     // numéro WhatsApp (format international)
+define('IA_PHONE',    '0775 76 59 89');
 define('IA_EMAIL',    'contact@intermediate-auto.com');
 define('IA_ADDRESS',  'Rue colonel Ahmed Bougura, Boufarik');
 
