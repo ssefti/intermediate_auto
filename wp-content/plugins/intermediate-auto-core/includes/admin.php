@@ -11,6 +11,7 @@ function iac_admin_menu() {
     add_menu_page('Administration', 'Administration', 'manage_options', 'intermediate-auto', 'iac_page_vehicles_section', 'dashicons-admin-generic', 25);
     add_submenu_page('intermediate-auto', 'Voitures', 'Voitures', 'manage_options', 'intermediate-auto', 'iac_page_vehicles_section');
     add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'manage_options', 'ia-clients', 'iac_page_clients_section');
+    add_submenu_page('intermediate-auto', 'Gestion des avances', 'Gestion des avances', 'manage_options', 'avances', 'avances_page_section');
 }
 
 /* ---------- Barre d'onglets d'une section ---------- */
@@ -18,6 +19,9 @@ function iac_section_tabs($section, $current) {
     if ($section === 'vehicles') {
         $base = admin_url('admin.php?page=intermediate-auto');
         $tabs = array('dashboard' => 'Tableau de bord', 'list' => 'Véhicules', 'edit' => 'Ajouter', 'export' => 'Exporter');
+    } elseif ($section === 'avances') {
+        $base = admin_url('admin.php?page=avances');
+        $tabs = array('list' => 'Avances', 'edit' => 'Ajouter');
     } else {
         $base = admin_url('admin.php?page=ia-clients');
         $tabs = array('list' => 'Clients', 'edit' => 'Ajouter');
@@ -46,7 +50,7 @@ function iac_page_vehicles_section() {
 /* ---------- Assets admin (médiathèque + style) ---------- */
 add_action('admin_enqueue_scripts', 'iac_admin_assets');
 function iac_admin_assets($hook) {
-    $on_admin = (strpos($hook, 'intermediate-auto') !== false || strpos($hook, 'ia-clients') !== false);
+    $on_admin = (strpos($hook, 'intermediate-auto') !== false || strpos($hook, 'ia-clients') !== false || strpos($hook, 'avances') !== false);
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : '';
     if ($on_admin && $tab === 'edit') {
         wp_enqueue_media();
