@@ -93,9 +93,18 @@ function commande_get($id) {
     return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . commandes_table() . " WHERE id = %d", (int)$id));
 }
 
+/** Avance effective : somme des avances encaissées liées, sinon le champ saisi à la main */
+function commande_avance_effective($c) {
+    if (function_exists('avances_sum_for_commande')) {
+        $s = avances_sum_for_commande($c->id);
+        if ($s > 0) return $s;
+    }
+    return (float)$c->avance;
+}
+
 /** Reste à payer d'une commande */
 function commande_reste($c) {
-    return max(0, (float)$c->prix - (float)$c->avance);
+    return max(0, (float)$c->prix - commande_avance_effective($c));
 }
 
 /* ============================================================
@@ -279,8 +288,18 @@ function commande_page_edit() {
     // Prix + avance
     echo '<div class="row">';
     echo '<div class="fld"><label>Prix total (DA)</label><input type="number" step="0.01" min="0" name="prix" value="' . esc_attr($get('prix', '')) . '" required></div>';
-    echo '<div class="fld"><label>Avance versée (DA)</label><input type="number" step="0.01" min="0" name="avance" value="' . esc_attr($get('avance', '0')) . '"></div>';
+    echo '<div class="fld"><label>Avance versée (DA) <span style="font-weight:400;color:#999">— si aucune avance liée</span></label><input type="number" step="0.01" min="0" name="avance" value="' . esc_attr($get('avance', '0')) . '"></div>';
     echo '</div>';
+
+    // Avances liées (module Avances)
+    if ($id && function_exists('avances_sum_for_commande')) {
+        $linkedsum = avances_sum_for_commande($id);
+        $addurl    = admin_url('admin.php?page=avances&tab=edit&commande_id=' . $id);
+        echo '<p style="margin:-4px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555">';
+        echo 'Avances encaissées liées à cette commande : <strong>' . esc_html(commande_money($linkedsum)) . '</strong>';
+        echo ' &nbsp;·&nbsp; <a href="' . esc_url($addurl) . '">+ Ajouter une avance pour cette commande</a>';
+        echo '<br><span style="font-size:12px;color:#888">Si des avances sont liées, elles remplacent automatiquement le champ « Avance versée » ci-dessus dans le bon de commande.</span></p>';
+    }
 
     // Mode + délai + statut
     echo '<div class="row">';
@@ -417,9 +436,24 @@ function commande_page_bon() {
             </div>
         </div>
 
+        <?php
+        $avance_eff = commande_avance_effective($c);
+        $linked = function_exists('avances_for_commande') ? avances_for_commande($c->id) : array();
+        ?>
         <table class="bon-amounts">
             <tr><td class="lbl">Prix total du véhicule</td><td><?php echo esc_html(commande_money($c->prix)); ?></td></tr>
-            <tr><td class="lbl">Avance versée<?php if ($c->mode_paiement) echo ' (' . esc_html($c->mode_paiement) . ')'; ?></td><td><?php echo esc_html(commande_money($c->avance)); ?></td></tr>
+            <?php if ($linked): ?>
+                <?php foreach ($linked as $av): ?>
+                <tr><td class="lbl" style="font-weight:400">Avance<?php
+                    if ($av->date_avance && $av->date_avance !== '0000-00-00') echo ' du ' . esc_html(date_i18n('j/m/Y', strtotime($av->date_avance)));
+                    if ($av->mode_paiement) echo ' · ' . esc_html($av->mode_paiement);
+                    if ($av->statut !== 'Encaissée') echo ' (' . esc_html($av->statut) . ')';
+                ?></td><td><?php echo esc_html(commande_money($av->montant)); ?></td></tr>
+                <?php endforeach; ?>
+                <tr><td class="lbl">Total avances encaissées</td><td><?php echo esc_html(commande_money($avance_eff)); ?></td></tr>
+            <?php else: ?>
+                <tr><td class="lbl">Avance versée<?php if ($c->mode_paiement) echo ' (' . esc_html($c->mode_paiement) . ')'; ?></td><td><?php echo esc_html(commande_money($c->avance)); ?></td></tr>
+            <?php endif; ?>
             <tr><td class="lbl reste">Reste à payer</td><td class="reste"><?php echo esc_html(commande_money($reste)); ?></td></tr>
         </table>
 

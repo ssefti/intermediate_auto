@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('AVANCES_VER', '1.0');
+define('AVANCES_VER', '1.1');
 
 /** Nom complet de la table des avances */
 function avances_table() {
@@ -37,6 +37,7 @@ function avances_maybe_install() {
         id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         client_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         vehicule_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
+        commande_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         montant DECIMAL(14,2) NOT NULL DEFAULT 0,
         date_avance DATE NULL DEFAULT NULL,
         mode_paiement VARCHAR(40) NOT NULL DEFAULT '',
@@ -48,6 +49,7 @@ function avances_maybe_install() {
         updated_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         PRIMARY KEY (id),
         KEY client_id (client_id),
+        KEY commande_id (commande_id),
         KEY statut (statut)
     ) {$charset};";
 
@@ -98,6 +100,22 @@ function avances_total($statut = 'Encaissée') {
         "SELECT COALESCE(SUM(montant),0) FROM " . avances_table() . " WHERE statut = %s", $statut));
 }
 
+/** Avances liées à une commande (hors annulées), pour le détail du bon */
+function avances_for_commande($commande_id) {
+    global $wpdb;
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM " . avances_table() . " WHERE commande_id = %d AND statut <> %s ORDER BY date_avance ASC, id ASC",
+        (int)$commande_id, 'Annulée'));
+}
+
+/** Somme des avances ENCAISSÉES liées à une commande */
+function avances_sum_for_commande($commande_id) {
+    global $wpdb;
+    return (float)$wpdb->get_var($wpdb->prepare(
+        "SELECT COALESCE(SUM(montant),0) FROM " . avances_table() . " WHERE commande_id = %d AND statut = %s",
+        (int)$commande_id, 'Encaissée'));
+}
+
 /** IDs des justificatifs d'une avance */
 function avance_attachment_ids($a) {
     if (empty($a->attachments)) return array();
@@ -137,6 +155,7 @@ function avance_save() {
     $data = array(
         'client_id'     => (int)($_POST['client_id'] ?? 0),
         'vehicule_id'   => (int)($_POST['vehicule_id'] ?? 0),
+        'commande_id'   => (int)($_POST['commande_id'] ?? 0),
         'montant'       => round($montant, 2),
         'date_avance'   => $date,
         'mode_paiement' => sanitize_text_field($_POST['mode_paiement'] ?? ''),
@@ -261,6 +280,14 @@ function avance_page_edit() {
     $id  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     $a   = $id ? avance_get($id) : null;
     $get = function($k, $d = '') use ($a) { return $a && isset($a->$k) ? $a->$k : $d; };
+    // Préremplissage si on arrive depuis une commande (?commande_id=)
+    $pre_commande = isset($_GET['commande_id']) ? (int)$_GET['commande_id'] : 0;
+    $cur_commande = (int)$get('commande_id', $pre_commande);
+    $cur_client   = (int)$get('client_id', 0);
+    if (!$cur_client && $pre_commande && function_exists('commande_get')) {
+        $pc = commande_get($pre_commande);
+        if ($pc) $cur_client = (int)$pc->client_id;
+    }
     iac_admin_style();
 
     echo '<div class="wrap iac-wrap">';
@@ -272,16 +299,30 @@ function avance_page_edit() {
     echo '<input type="hidden" name="action" value="avance_save">';
     echo '<input type="hidden" name="id" value="' . esc_attr($id) . '">';
 
-    // Client + véhicule
+    // Client + commande
     echo '<div class="row">';
     echo '<div class="fld"><label>Client</label><select name="client_id" required>';
     echo '<option value="">— Choisir un client —</option>';
     if (function_exists('iac_get_clients')) {
         foreach (iac_get_clients(array('active' => 1, 'orderby' => 'nom', 'order' => 'ASC')) as $cc) {
-            echo '<option value="' . (int)$cc->id . '" ' . selected((int)$get('client_id', 0), (int)$cc->id, false) . '>' . esc_html(iac_client_name($cc)) . '</option>';
+            echo '<option value="' . (int)$cc->id . '" ' . selected($cur_client, (int)$cc->id, false) . '>' . esc_html(iac_client_name($cc)) . '</option>';
         }
     }
     echo '</select></div>';
+    echo '<div class="fld"><label>Commande associée (facultatif)</label><select name="commande_id">';
+    echo '<option value="0">— Aucune —</option>';
+    if (function_exists('commandes_get_all')) {
+        foreach (commandes_get_all() as $cmd) {
+            $lbl = $cmd->numero;
+            if ($cmd->client_id && function_exists('iac_get_client')) { $ccl = iac_get_client($cmd->client_id); if ($ccl) $lbl .= ' — ' . iac_client_name($ccl); }
+            echo '<option value="' . (int)$cmd->id . '" ' . selected($cur_commande, (int)$cmd->id, false) . '>' . esc_html($lbl) . '</option>';
+        }
+    }
+    echo '</select></div>';
+    echo '</div>';
+
+    // Véhicule
+    echo '<div class="row">';
     echo '<div class="fld"><label>Véhicule (facultatif)</label><select name="vehicule_id">';
     echo '<option value="0">— Aucun —</option>';
     if (function_exists('ia_get_vehicles')) {
@@ -289,7 +330,7 @@ function avance_page_edit() {
             echo '<option value="' . (int)$vv->id . '" ' . selected((int)$get('vehicule_id', 0), (int)$vv->id, false) . '>' . esc_html(ia_vehicle_title($vv)) . '</option>';
         }
     }
-    echo '</select></div>';
+    echo '</select></div><div class="fld"></div>';
     echo '</div>';
 
     // Montant + date
