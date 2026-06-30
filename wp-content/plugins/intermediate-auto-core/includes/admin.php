@@ -7,9 +7,10 @@ if (!defined('ABSPATH')) exit;
 /* ---------- Menu ---------- */
 add_action('admin_menu', 'iac_admin_menu');
 function iac_admin_menu() {
-    // Menu principal « Administration » → 2 sous-menus : Voitures et Clients
-    add_menu_page('Administration', 'Administration', 'manage_options', 'intermediate-auto', 'iac_page_vehicles_section', 'dashicons-admin-generic', 25);
-    add_submenu_page('intermediate-auto', 'Voitures', 'Voitures', 'manage_options', 'intermediate-auto', 'iac_page_vehicles_section');
+    // Menu principal « Administration » : tableau de bord + sections
+    add_menu_page('Administration', 'Administration', 'manage_options', 'intermediate-auto', 'dashboard_page', 'dashicons-chart-area', 25);
+    add_submenu_page('intermediate-auto', 'Tableau de bord', 'Tableau de bord', 'manage_options', 'intermediate-auto', 'dashboard_page');
+    add_submenu_page('intermediate-auto', 'Voitures', 'Voitures', 'manage_options', 'vehicules', 'iac_page_vehicles_section');
     add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'manage_options', 'ia-clients', 'iac_page_clients_section');
     add_submenu_page('intermediate-auto', 'Gestion des avances', 'Gestion des avances', 'manage_options', 'avances', 'avances_page_section');
     add_submenu_page('intermediate-auto', 'Gestion des commandes', 'Gestion des commandes', 'manage_options', 'commandes', 'commandes_page_section');
@@ -18,8 +19,8 @@ function iac_admin_menu() {
 /* ---------- Barre d'onglets d'une section ---------- */
 function iac_section_tabs($section, $current) {
     if ($section === 'vehicles') {
-        $base = admin_url('admin.php?page=intermediate-auto');
-        $tabs = array('dashboard' => 'Tableau de bord', 'list' => 'Véhicules', 'edit' => 'Ajouter', 'export' => 'Exporter');
+        $base = admin_url('admin.php?page=vehicules');
+        $tabs = array('list' => 'Véhicules', 'edit' => 'Ajouter', 'export' => 'Exporter');
     } elseif ($section === 'avances') {
         $base = admin_url('admin.php?page=avances');
         $tabs = array('list' => 'Avances', 'edit' => 'Ajouter');
@@ -40,21 +41,20 @@ function iac_section_tabs($section, $current) {
 
 /* ---------- Section Voitures (onglets) ---------- */
 function iac_page_vehicles_section() {
-    $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'dashboard';
-    if (!in_array($tab, array('dashboard', 'list', 'edit', 'export'), true)) $tab = 'dashboard';
+    $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'list';
+    if (!in_array($tab, array('list', 'edit', 'export'), true)) $tab = 'list';
     iac_section_tabs('vehicles', $tab);
     switch ($tab) {
-        case 'list':   iac_page_list();      break;
-        case 'edit':   iac_page_edit();      break;
-        case 'export': iac_page_export();    break;
-        default:       iac_page_dashboard(); break;
+        case 'edit':   iac_page_edit();   break;
+        case 'export': iac_page_export(); break;
+        default:       iac_page_list();   break;
     }
 }
 
 /* ---------- Assets admin (médiathèque + style) ---------- */
 add_action('admin_enqueue_scripts', 'iac_admin_assets');
 function iac_admin_assets($hook) {
-    $on_admin = (strpos($hook, 'intermediate-auto') !== false || strpos($hook, 'ia-clients') !== false || strpos($hook, 'avances') !== false);
+    $on_admin = (strpos($hook, 'vehicules') !== false || strpos($hook, 'ia-clients') !== false || strpos($hook, 'avances') !== false);
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : '';
     if ($on_admin && $tab === 'edit') {
         wp_enqueue_media();
@@ -157,7 +157,7 @@ function iac_save_vehicle() {
         $wpdb->insert(iac_table(), $data);
         $msg = 'created';
     }
-    wp_safe_redirect(admin_url('admin.php?page=intermediate-auto&tab=list&iac_msg=' . $msg));
+    wp_safe_redirect(admin_url('admin.php?page=vehicules&tab=list&iac_msg=' . $msg));
     exit;
 }
 
@@ -171,7 +171,7 @@ function iac_delete_vehicle() {
         global $wpdb;
         $wpdb->delete(iac_table(), array('id' => $id));
     }
-    wp_safe_redirect(admin_url('admin.php?page=intermediate-auto&tab=list&iac_msg=deleted'));
+    wp_safe_redirect(admin_url('admin.php?page=vehicules&tab=list&iac_msg=deleted'));
     exit;
 }
 
@@ -257,14 +257,14 @@ function iac_page_dashboard() {
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Tableau de bord — Intermediate Auto</h1>';
-    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=intermediate-auto&tab=edit')) . '">+ Ajouter un véhicule</a></div>';
+    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=vehicules&tab=edit')) . '">+ Ajouter un véhicule</a></div>';
     echo '<div class="iac-cards">';
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Véhicules au total</div></div>', $total);
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Disponibles</div></div>', $dispo);
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Sur commande</div></div>', $cmd);
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Clients actifs</div></div>', $clients);
     echo '</div>';
-    echo '<p><a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=intermediate-auto&tab=list')) . '">Gérer les véhicules</a> ';
+    echo '<p><a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=vehicules&tab=list')) . '">Gérer les véhicules</a> ';
     echo '<a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ia-clients')) . '">Gérer les clients</a></p>';
     echo '<p style="color:#777">Prochaines étapes prévues : commandes, factures et bons de livraison.</p>';
     echo '</div>';
@@ -278,7 +278,7 @@ function iac_page_list() {
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Véhicules</h1>';
-    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=intermediate-auto&tab=edit')) . '">+ Ajouter un véhicule</a></div>';
+    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=vehicules&tab=edit')) . '">+ Ajouter un véhicule</a></div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array('created'=>'Véhicule ajouté.','updated'=>'Véhicule mis à jour.','deleted'=>'Véhicule supprimé.');
@@ -290,10 +290,10 @@ function iac_page_list() {
     echo '<thead><tr><th style="width:80px">Photo</th><th>Véhicule</th><th>Boîte</th><th>Couleur</th><th>Prix</th><th>Douane</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
 
     if (!$vehicles) {
-        echo '<tr><td colspan="8">Aucun véhicule. <a href="' . esc_url(admin_url('admin.php?page=intermediate-auto&tab=edit')) . '">Ajoutez-en un</a>.</td></tr>';
+        echo '<tr><td colspan="8">Aucun véhicule. <a href="' . esc_url(admin_url('admin.php?page=vehicules&tab=edit')) . '">Ajoutez-en un</a>.</td></tr>';
     } else {
         foreach ($vehicles as $v) {
-            $edit = admin_url('admin.php?page=intermediate-auto&tab=edit&id=' . $v->id);
+            $edit = admin_url('admin.php?page=vehicules&tab=edit&id=' . $v->id);
             $del  = wp_nonce_url(admin_url('admin-post.php?action=iac_delete_vehicle&id=' . $v->id), 'iac_delete_' . $v->id);
             $pill = $v->statut==='Disponible' ? 'ok' : ($v->statut==='Vendu' ? 'sold' : 'cmd');
             echo '<tr>';
@@ -343,7 +343,7 @@ function iac_page_edit() {
 
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>' . ($id ? 'Modifier un véhicule' : 'Ajouter un véhicule') . '</h1>';
-    echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=intermediate-auto&tab=list')) . '">← Retour à la liste</a></div>';
+    echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=vehicules&tab=list')) . '">← Retour à la liste</a></div>';
 
     echo '<form class="iac-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     wp_nonce_field('iac_save_vehicle');
