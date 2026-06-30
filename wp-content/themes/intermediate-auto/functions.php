@@ -74,12 +74,48 @@ function ia_favicon() {
 }
 add_action('wp_head', 'ia_favicon', 2);
 
+/** Remplace le logo WordPress par le logo du site sur la page de connexion */
+function brand_login_logo() {
+    $u = ia_img('Logo_intermediate_auto_black.jpeg');
+    echo '<style>
+    body.login{background:#f4f6f8}
+    #login h1 a{
+        background-image:url(' . esc_url($u) . ');
+        background-size:contain;background-position:center;background-repeat:no-repeat;
+        background-color:#1A1A1A;border-radius:10px;
+        width:100%;height:96px;margin-bottom:18px
+    }
+    .wp-core-ui .button-primary{background:#D4AF37;border-color:#C05A00;text-shadow:none}
+    .login #backtoblog a,.login #nav a{color:#C05A00}
+    </style>';
+}
+add_action('login_enqueue_scripts', 'brand_login_logo');
+
+/** Le logo de connexion pointe vers le site (au lieu de wordpress.org) */
+add_filter('login_headerurl', function () { return home_url('/'); });
+add_filter('login_headertext', function () { return get_bloginfo('name'); });
+
+/** Remplace l'icône WordPress de la barre d'administration par le logo du site */
+function brand_adminbar_logo() {
+    if (!is_admin_bar_showing()) return;
+    $u = ia_img('Logo_intermediate_auto_black.jpeg');
+    echo '<style>
+    #wpadminbar #wp-admin-bar-wp-logo > .ab-item .ab-icon:before{
+        content:"";background:url(' . esc_url($u) . ') center/contain no-repeat;
+        width:22px;height:22px;top:5px
+    }
+    #wp-admin-bar-wp-logo .ab-sub-wrapper{display:none}
+    </style>';
+}
+add_action('wp_head', 'brand_adminbar_logo');
+add_action('admin_head', 'brand_adminbar_logo');
+
 /** Déclare les templates de page (fallback si non détectés) */
 function ia_page_templates($templates) {
-    $templates['template-apropos.php']    = 'IA — À propos';
-    $templates['template-simulateur.php'] = 'IA — Simulateur douane';
-    $templates['template-contact.php']    = 'IA — Contact';
-    $templates['template-vehicules.php']  = 'IA — Véhicules (catalogue)';
+    $templates['template-apropos.php']    = 'Intermediate Auto — À propos';
+    $templates['template-simulateur.php'] = 'Intermediate Auto — Simulateur douane';
+    $templates['template-contact.php']    = 'Intermediate Auto — Contact';
+    $templates['template-vehicules.php']  = 'Intermediate Auto — Véhicules (catalogue)';
     return $templates;
 }
 add_filter('theme_page_templates', 'ia_page_templates');

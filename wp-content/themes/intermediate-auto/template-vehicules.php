@@ -1,5 +1,5 @@
 <?php
-/* Template Name: IA — Véhicules (catalogue) */
+/* Template Name: Intermediate Auto — Véhicules (catalogue) */
 if (!defined('ABSPATH')) exit; get_header();
 
 $marque = isset($_GET['marque']) ? sanitize_text_field($_GET['marque']) : '';

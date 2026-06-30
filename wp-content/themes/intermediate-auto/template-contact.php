@@ -1,5 +1,5 @@
 <?php
-/* Template Name: IA — Contact */
+/* Template Name: Intermediate Auto — Contact */
 if (!defined('ABSPATH')) exit; get_header();
 $models = ia_vehicles_safe(array('orderby'=>'marque','order'=>'ASC'));
 ?>

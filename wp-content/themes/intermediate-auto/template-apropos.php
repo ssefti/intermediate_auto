@@ -1,5 +1,5 @@
 <?php
-/* Template Name: IA — À propos */
+/* Template Name: Intermediate Auto — À propos */
 if (!defined('ABSPATH')) exit; get_header(); ?>
 <style>
 .phero{position:relative;background:#0d0d0d;color:#fff;overflow:hidden}

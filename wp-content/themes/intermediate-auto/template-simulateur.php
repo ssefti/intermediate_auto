@@ -1,5 +1,5 @@
 <?php
-/* Template Name: IA — Simulateur douane */
+/* Template Name: Intermediate Auto — Simulateur douane */
 if (!defined('ABSPATH')) exit; get_header();
 
 $vehicles = ia_vehicles_safe(array('orderby' => 'marque', 'order' => 'ASC'));
