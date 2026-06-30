@@ -273,3 +273,4 @@ function ia_douane_label($v) {
 require_once IAC_DIR . 'includes/admin.php';
 require_once IAC_DIR . 'includes/clients.php';
 require_once IAC_DIR . 'includes/avances.php';
+require_once IAC_DIR . 'includes/commandes.php';

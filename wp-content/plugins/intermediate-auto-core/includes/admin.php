@@ -12,6 +12,7 @@ function iac_admin_menu() {
     add_submenu_page('intermediate-auto', 'Voitures', 'Voitures', 'manage_options', 'intermediate-auto', 'iac_page_vehicles_section');
     add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'manage_options', 'ia-clients', 'iac_page_clients_section');
     add_submenu_page('intermediate-auto', 'Gestion des avances', 'Gestion des avances', 'manage_options', 'avances', 'avances_page_section');
+    add_submenu_page('intermediate-auto', 'Gestion des commandes', 'Gestion des commandes', 'manage_options', 'commandes', 'commandes_page_section');
 }
 
 /* ---------- Barre d'onglets d'une section ---------- */
@@ -22,6 +23,9 @@ function iac_section_tabs($section, $current) {
     } elseif ($section === 'avances') {
         $base = admin_url('admin.php?page=avances');
         $tabs = array('list' => 'Avances', 'edit' => 'Ajouter');
+    } elseif ($section === 'commandes') {
+        $base = admin_url('admin.php?page=commandes');
+        $tabs = array('list' => 'Commandes', 'edit' => 'Nouvelle commande');
     } else {
         $base = admin_url('admin.php?page=ia-clients');
         $tabs = array('list' => 'Clients', 'edit' => 'Ajouter');
