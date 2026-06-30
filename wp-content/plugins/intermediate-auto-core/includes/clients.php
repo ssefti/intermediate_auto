@@ -214,12 +214,24 @@ function iac_toggle_client() {
 /* ============================================================
  *  PAGE : Liste des clients
  * ============================================================ */
-function iac_page_clients_list() {
-    // Affichage de la fiche d'un client (sans page séparée → évite les soucis d'autorisation)
+/* ============================================================
+ *  SECTION CLIENTS (onglets : Clients / Ajouter, + fiche)
+ * ============================================================ */
+function iac_page_clients_section() {
+    // Fiche d'un client (rendue dans la même page → pas de souci d'autorisation)
     if (isset($_GET['view']) && (int)$_GET['view'] > 0) {
+        iac_section_tabs('clients', 'list');
         iac_page_client_view();
         return;
     }
+    $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'list';
+    if (!in_array($tab, array('list', 'edit'), true)) $tab = 'list';
+    iac_section_tabs('clients', $tab);
+    if ($tab === 'edit') iac_page_client_edit();
+    else                 iac_page_clients_list();
+}
+
+function iac_page_clients_list() {
     $f_active = '';
     if (isset($_GET['filtre'])) {
         if ($_GET['filtre'] === 'actifs')   $f_active = 1;
@@ -235,7 +247,7 @@ function iac_page_clients_list() {
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Clients</h1>';
-    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=ia-client-edit')) . '">+ Ajouter un client</a></div>';
+    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=ia-clients&tab=edit')) . '">+ Ajouter un client</a></div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array(
@@ -267,11 +279,11 @@ function iac_page_clients_list() {
     echo '<thead><tr><th>Client</th><th>Type</th><th>Téléphone</th><th>Wilaya</th><th>Véhicule</th><th>Statut</th><th style="width:90px">État</th><th style="width:200px">Actions</th></tr></thead><tbody>';
 
     if (!$clients) {
-        echo '<tr><td colspan="8">Aucun client. <a href="' . esc_url(admin_url('admin.php?page=ia-client-edit')) . '">Ajoutez-en un</a>.</td></tr>';
+        echo '<tr><td colspan="8">Aucun client. <a href="' . esc_url(admin_url('admin.php?page=ia-clients&tab=edit')) . '">Ajoutez-en un</a>.</td></tr>';
     } else {
         foreach ($clients as $c) {
             $view   = admin_url('admin.php?page=ia-clients&view=' . $c->id);
-            $edit   = admin_url('admin.php?page=ia-client-edit&id=' . $c->id);
+            $edit   = admin_url('admin.php?page=ia-clients&tab=edit&id=' . $c->id);
             $toggle = wp_nonce_url(admin_url('admin-post.php?action=iac_toggle_client&id=' . $c->id), 'iac_toggle_' . $c->id);
             $pill   = $c->statut_client === 'Acheteur' ? 'ok' : ($c->statut_client === 'Ancien client' ? 'sold' : 'cmd');
             $veh    = '';
@@ -315,7 +327,7 @@ function iac_page_client_view() {
         return;
     }
 
-    $edit   = admin_url('admin.php?page=ia-client-edit&id=' . $c->id);
+    $edit   = admin_url('admin.php?page=ia-clients&tab=edit&id=' . $c->id);
     $toggle = wp_nonce_url(admin_url('admin-post.php?action=iac_toggle_client&id=' . $c->id), 'iac_toggle_' . $c->id);
 
     echo '<div class="iac-head"><h1>' . esc_html(iac_client_name($c)) . ' ';
