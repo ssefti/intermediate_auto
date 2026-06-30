@@ -7,17 +7,22 @@ if (!defined('ABSPATH')) exit;
 /* ---------- Menu ---------- */
 add_action('admin_menu', 'iac_admin_menu');
 function iac_admin_menu() {
-    add_menu_page('Voitures', 'Voitures', 'manage_options', 'intermediate-auto', 'iac_page_dashboard', 'dashicons-car', 25);
+    add_menu_page('Administration', 'Administration', 'manage_options', 'intermediate-auto', 'iac_page_dashboard', 'dashicons-admin-generic', 25);
     add_submenu_page('intermediate-auto', 'Tableau de bord', 'Tableau de bord', 'manage_options', 'intermediate-auto', 'iac_page_dashboard');
     add_submenu_page('intermediate-auto', 'Véhicules', 'Véhicules', 'manage_options', 'ia-vehicles', 'iac_page_list');
     add_submenu_page('intermediate-auto', 'Ajouter un véhicule', 'Ajouter un véhicule', 'manage_options', 'ia-vehicle-edit', 'iac_page_edit');
+    add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'manage_options', 'ia-clients', 'iac_page_clients_list');
+    add_submenu_page('intermediate-auto', 'Ajouter un client', 'Ajouter un client', 'manage_options', 'ia-client-edit', 'iac_page_client_edit');
     add_submenu_page('intermediate-auto', 'Exporter (Excel)', 'Exporter (Excel)', 'manage_options', 'ia-export', 'iac_page_export');
+    // Fiche client : page accessible mais masquée du menu
+    add_submenu_page('intermediate-auto', 'Fiche client', 'Fiche client', 'manage_options', 'ia-client-view', 'iac_page_client_view');
+    remove_submenu_page('intermediate-auto', 'ia-client-view');
 }
 
 /* ---------- Assets admin (médiathèque + style) ---------- */
 add_action('admin_enqueue_scripts', 'iac_admin_assets');
 function iac_admin_assets($hook) {
-    if (strpos($hook, 'ia-vehicle-edit') !== false) {
+    if (strpos($hook, 'ia-vehicle-edit') !== false || strpos($hook, 'ia-client-edit') !== false) {
         wp_enqueue_media();
     }
 }
@@ -208,6 +213,13 @@ function iac_page_dashboard() {
     $dispo = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t} WHERE statut=%s", 'Disponible'));
     $cmd   = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$t} WHERE statut=%s", 'Sur commande'));
     $marques = (int)$wpdb->get_var("SELECT COUNT(DISTINCT marque) FROM {$t}");
+    $clients = 0;
+    if (function_exists('iac_clients_table')) {
+        $ct = iac_clients_table();
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $ct)) === $ct) {
+            $clients = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$ct} WHERE active=1");
+        }
+    }
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Tableau de bord — Intermediate Auto</h1>';
@@ -216,10 +228,11 @@ function iac_page_dashboard() {
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Véhicules au total</div></div>', $total);
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Disponibles</div></div>', $dispo);
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Sur commande</div></div>', $cmd);
-    printf('<div class="iac-card"><div class="n">%d</div><div class="l">Marques</div></div>', $marques);
+    printf('<div class="iac-card"><div class="n">%d</div><div class="l">Clients actifs</div></div>', $clients);
     echo '</div>';
-    echo '<p><a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ia-vehicles')) . '">Gérer les véhicules</a></p>';
-    echo '<p style="color:#777">Prochaines étapes prévues : commandes, factures, bons de livraison et export quotidien de la base véhicules.</p>';
+    echo '<p><a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ia-vehicles')) . '">Gérer les véhicules</a> ';
+    echo '<a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ia-clients')) . '">Gérer les clients</a></p>';
+    echo '<p style="color:#777">Prochaines étapes prévues : commandes, factures et bons de livraison.</p>';
     echo '</div>';
 }
 

@@ -271,3 +271,4 @@ function ia_douane_label($v) {
  *  ADMINISTRATION
  * ============================================================ */
 require_once IAC_DIR . 'includes/admin.php';
+require_once IAC_DIR . 'includes/clients.php';
