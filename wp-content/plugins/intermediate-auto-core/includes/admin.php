@@ -14,9 +14,6 @@ function iac_admin_menu() {
     add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'manage_options', 'ia-clients', 'iac_page_clients_list');
     add_submenu_page('intermediate-auto', 'Ajouter un client', 'Ajouter un client', 'manage_options', 'ia-client-edit', 'iac_page_client_edit');
     add_submenu_page('intermediate-auto', 'Exporter (Excel)', 'Exporter (Excel)', 'manage_options', 'ia-export', 'iac_page_export');
-    // Fiche client : page accessible mais masquée du menu
-    add_submenu_page('intermediate-auto', 'Fiche client', 'Fiche client', 'manage_options', 'ia-client-view', 'iac_page_client_view');
-    remove_submenu_page('intermediate-auto', 'ia-client-view');
 }
 
 /* ---------- Assets admin (médiathèque + style) ---------- */

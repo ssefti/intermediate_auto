@@ -215,6 +215,11 @@ function iac_toggle_client() {
  *  PAGE : Liste des clients
  * ============================================================ */
 function iac_page_clients_list() {
+    // Affichage de la fiche d'un client (sans page séparée → évite les soucis d'autorisation)
+    if (isset($_GET['view']) && (int)$_GET['view'] > 0) {
+        iac_page_client_view();
+        return;
+    }
     $f_active = '';
     if (isset($_GET['filtre'])) {
         if ($_GET['filtre'] === 'actifs')   $f_active = 1;
@@ -265,7 +270,7 @@ function iac_page_clients_list() {
         echo '<tr><td colspan="8">Aucun client. <a href="' . esc_url(admin_url('admin.php?page=ia-client-edit')) . '">Ajoutez-en un</a>.</td></tr>';
     } else {
         foreach ($clients as $c) {
-            $view   = admin_url('admin.php?page=ia-client-view&id=' . $c->id);
+            $view   = admin_url('admin.php?page=ia-clients&view=' . $c->id);
             $edit   = admin_url('admin.php?page=ia-client-edit&id=' . $c->id);
             $toggle = wp_nonce_url(admin_url('admin-post.php?action=iac_toggle_client&id=' . $c->id), 'iac_toggle_' . $c->id);
             $pill   = $c->statut_client === 'Acheteur' ? 'ok' : ($c->statut_client === 'Ancien client' ? 'sold' : 'cmd');
@@ -299,7 +304,7 @@ function iac_page_clients_list() {
  *  PAGE : Fiche client (consultation)
  * ============================================================ */
 function iac_page_client_view() {
-    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    $id = isset($_GET['view']) ? (int)$_GET['view'] : (isset($_GET['id']) ? (int)$_GET['id'] : 0);
     $c  = $id ? iac_get_client($id) : null;
     iac_admin_style();
 
