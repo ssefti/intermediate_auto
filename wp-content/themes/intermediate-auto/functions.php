@@ -110,6 +110,15 @@ function brand_adminbar_logo() {
 add_action('wp_head', 'brand_adminbar_logo');
 add_action('admin_head', 'brand_adminbar_logo');
 
+/** Favicon (icône d'onglet) du logo du site dans l'admin et la page de connexion */
+function brand_admin_favicon() {
+    $u = ia_img('Logo_intermediate_auto_black.jpeg');
+    echo '<link rel="icon" type="image/jpeg" href="' . esc_url($u) . '">' . "\n";
+    echo '<link rel="shortcut icon" type="image/jpeg" href="' . esc_url($u) . '">' . "\n";
+}
+add_action('admin_head', 'brand_admin_favicon');
+add_action('login_head', 'brand_admin_favicon');
+
 /** Déclare les templates de page (fallback si non détectés) */
 function ia_page_templates($templates) {
     $templates['template-apropos.php']    = 'Intermediate Auto — À propos';
