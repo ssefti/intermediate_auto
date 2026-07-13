@@ -20,7 +20,7 @@ function iac_table() {
 }
 
 /** Listes de référence (réutilisées par le formulaire et les filtres) */
-function iac_marques()    { return array('Geely','MG','Livan','GAC','Jetta','Chery','Changan','T-Roc','Rongwei','Volkswagen','Autre'); }
+function iac_marques()    { return array('Geely','MG','Livan','GAC','Jetta','Chery','Changan','T-Roc','Rongwei','Volkswagen','Roewe','Jetour','Audi','Autre'); }
 
 /** Marques réellement présentes dans le catalogue (pour les filtres) */
 function ia_marques_in_use() {

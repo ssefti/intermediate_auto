@@ -17,7 +17,7 @@
     <div>
       <h4>Nos marques</h4>
       <?php
-      $f_marques = function_exists('ia_marques_in_use') ? ia_marques_in_use() : array();
+      $f_marques = function_exists('iac_marques') ? iac_marques() : array();
       foreach ($f_marques as $fm):
         if ($fm === '' || strtolower($fm) === 'autre') continue; ?>
         <a href="<?php echo esc_url(add_query_arg('marque', rawurlencode($fm), ia_url('vehicules'))); ?>"><?php echo esc_html($fm); ?></a>
