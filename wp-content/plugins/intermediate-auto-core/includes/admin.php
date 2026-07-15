@@ -24,7 +24,7 @@ function iac_admin_menu() {
 function iac_section_tabs($section, $current) {
     if ($section === 'vehicles') {
         $base = admin_url('admin.php?page=vehicules');
-        $tabs = array('list' => 'Véhicules', 'edit' => 'Ajouter', 'export' => 'Exporter');
+        $tabs = array('list' => 'Véhicules', 'edit' => 'Ajouter', 'marques' => 'Marques', 'export' => 'Exporter');
     } elseif ($section === 'avances') {
         $base = admin_url('admin.php?page=avances');
         $tabs = array('list' => 'Avances', 'edit' => 'Ajouter');
@@ -47,13 +47,86 @@ function iac_section_tabs($section, $current) {
 function iac_page_vehicles_section() {
     acces_guard(acces_can_edit('vehicules'));
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'list';
-    if (!in_array($tab, array('list', 'edit', 'export'), true)) $tab = 'list';
+    if (!in_array($tab, array('list', 'edit', 'marques', 'export'), true)) $tab = 'list';
     iac_section_tabs('vehicles', $tab);
     switch ($tab) {
-        case 'edit':   iac_page_edit();   break;
-        case 'export': iac_page_export(); break;
-        default:       iac_page_list();   break;
+        case 'edit':    iac_page_edit();    break;
+        case 'marques': iac_page_marques(); break;
+        case 'export':  iac_page_export();  break;
+        default:        iac_page_list();    break;
     }
+}
+
+/* ---------- Ajout / suppression de marques personnalisées ---------- */
+add_action('admin_post_iac_add_marque', 'iac_add_marque');
+function iac_add_marque() {
+    acces_guard(acces_can_edit('vehicules'));
+    check_admin_referer('iac_add_marque');
+    $name = sanitize_text_field($_POST['marque'] ?? '');
+    if ($name !== '') iac_marque_add($name);
+    wp_safe_redirect(admin_url('admin.php?page=vehicules&tab=marques&iac_msg=madded'));
+    exit;
+}
+
+add_action('admin_post_iac_delete_marque', 'iac_delete_marque');
+function iac_delete_marque() {
+    acces_guard(acces_can_edit('vehicules'));
+    check_admin_referer('iac_delete_marque');
+    $name = isset($_GET['m']) ? sanitize_text_field(wp_unslash($_GET['m'])) : '';
+    $list = array_values(array_filter(iac_marques_custom(), function ($x) use ($name) {
+        return strtolower(trim($x)) !== strtolower(trim($name));
+    }));
+    update_option('iac_marques_custom', $list);
+    wp_safe_redirect(admin_url('admin.php?page=vehicules&tab=marques&iac_msg=mdeleted'));
+    exit;
+}
+
+/* ---------- PAGE : Marques ---------- */
+function iac_page_marques() {
+    iac_admin_style();
+    echo '<div class="wrap iac-wrap">';
+    echo '<div class="iac-head"><h1>Marques</h1></div>';
+
+    if (isset($_GET['iac_msg'])) {
+        $m = array('madded' => 'Marque ajoutée.', 'mdeleted' => 'Marque supprimée.');
+        $k = sanitize_key($_GET['iac_msg']);
+        if (isset($m[$k])) echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($m[$k]) . '</p></div>';
+    }
+
+    // Ajouter une marque
+    echo '<div class="iac-card" style="max-width:560px;margin-bottom:22px">';
+    echo '<h2 style="font-size:15px;margin:0 0 12px">Ajouter une marque</h2>';
+    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:flex;gap:10px">';
+    wp_nonce_field('iac_add_marque');
+    echo '<input type="hidden" name="action" value="iac_add_marque">';
+    echo '<input type="text" name="marque" placeholder="Nom de la marque" required style="flex:1">';
+    echo '<button class="iac-btn">Ajouter</button>';
+    echo '</form></div>';
+
+    // Marques personnalisées
+    $custom = iac_marques_custom();
+    echo '<div class="iac-card" style="max-width:560px">';
+    echo '<h2 style="font-size:15px;margin:0 0 12px">Marques ajoutées</h2>';
+    if (!$custom) {
+        echo '<p style="color:#777">Aucune marque personnalisée pour l\'instant.</p>';
+    } else {
+        echo '<table class="wp-list-table widefat striped"><tbody>';
+        foreach ($custom as $mk) {
+            $del = wp_nonce_url(admin_url('admin-post.php?action=iac_delete_marque&m=' . rawurlencode($mk)), 'iac_delete_marque');
+            echo '<tr><td>' . esc_html($mk) . '</td><td style="width:100px;text-align:right"><a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer cette marque ?\')" style="color:#b23b3b">Supprimer</a></td></tr>';
+        }
+        echo '</tbody></table>';
+        echo '<p style="color:#777;font-size:12px;margin-top:10px">Supprimer une marque la retire de la liste et du footer. Les véhicules qui l\'utilisent déjà ne sont pas modifiés.</p>';
+    }
+    echo '</div>';
+
+    // Marques de référence (non modifiables)
+    echo '<div class="iac-card" style="max-width:560px;margin-top:22px">';
+    echo '<h2 style="font-size:15px;margin:0 0 10px">Marques de référence</h2>';
+    echo '<p style="color:#777">' . esc_html(implode(', ', iac_marques_base())) . '</p>';
+    echo '</div>';
+
+    echo '</div>';
 }
 
 /* ---------- Assets admin (médiathèque + style) ---------- */
