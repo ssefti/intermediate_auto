@@ -7,13 +7,17 @@ if (!defined('ABSPATH')) exit;
 /* ---------- Menu ---------- */
 add_action('admin_menu', 'iac_admin_menu');
 function iac_admin_menu() {
-    // Menu principal « Administration » : tableau de bord + sections
-    add_menu_page('Administration', 'Administration', 'manage_options', 'intermediate-auto', 'dashboard_page', 'dashicons-chart-area', 25);
-    add_submenu_page('intermediate-auto', 'Tableau de bord', 'Tableau de bord', 'manage_options', 'intermediate-auto', 'dashboard_page');
-    add_submenu_page('intermediate-auto', 'Voitures', 'Voitures', 'manage_options', 'vehicules', 'iac_page_vehicles_section');
-    add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'manage_options', 'ia-clients', 'iac_page_clients_section');
-    add_submenu_page('intermediate-auto', 'Gestion des avances', 'Gestion des avances', 'manage_options', 'avances', 'avances_page_section');
-    add_submenu_page('intermediate-auto', 'Gestion des commandes', 'Gestion des commandes', 'manage_options', 'commandes', 'commandes_page_section');
+    // Aucun accès → aucun menu
+    if (!acces_any()) return;
+    $can_dash = acces_has('dashboard_view');
+
+    // Menu principal « Administration » (chaque section selon les accès)
+    add_menu_page('Administration', 'Administration', 'read', 'intermediate-auto', $can_dash ? 'dashboard_page' : 'acces_landing', 'dashicons-chart-area', 25);
+    if ($can_dash) add_submenu_page('intermediate-auto', 'Tableau de bord', 'Tableau de bord', 'read', 'intermediate-auto', 'dashboard_page');
+    if (acces_can_edit('vehicules')) add_submenu_page('intermediate-auto', 'Voitures', 'Voitures', 'read', 'vehicules', 'iac_page_vehicles_section');
+    if (acces_can_view('clients'))   add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'read', 'ia-clients', 'iac_page_clients_section');
+    if (acces_can_view('avances'))   add_submenu_page('intermediate-auto', 'Gestion des avances', 'Gestion des avances', 'read', 'avances', 'avances_page_section');
+    if (acces_can_view('commandes')) add_submenu_page('intermediate-auto', 'Gestion des commandes', 'Gestion des commandes', 'read', 'commandes', 'commandes_page_section');
 }
 
 /* ---------- Barre d'onglets d'une section ---------- */
@@ -41,6 +45,7 @@ function iac_section_tabs($section, $current) {
 
 /* ---------- Section Voitures (onglets) ---------- */
 function iac_page_vehicles_section() {
+    acces_guard(acces_can_edit('vehicules'));
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'list';
     if (!in_array($tab, array('list', 'edit', 'export'), true)) $tab = 'list';
     iac_section_tabs('vehicles', $tab);
@@ -87,7 +92,7 @@ function iac_admin_style() {
 /* ---------- Enregistrement (création / édition) ---------- */
 add_action('admin_post_iac_save_vehicle', 'iac_save_vehicle');
 function iac_save_vehicle() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('vehicules'));
     check_admin_referer('iac_save_vehicle');
 
     global $wpdb;
@@ -164,7 +169,7 @@ function iac_save_vehicle() {
 /* ---------- Suppression ---------- */
 add_action('admin_post_iac_delete_vehicle', 'iac_delete_vehicle');
 function iac_delete_vehicle() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('vehicules'));
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     check_admin_referer('iac_delete_' . $id);
     if ($id > 0) {
@@ -180,7 +185,7 @@ function iac_delete_vehicle() {
  * ============================================================ */
 add_action('admin_post_iac_export_csv', 'iac_export_csv');
 function iac_export_csv() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('vehicules'));
     check_admin_referer('iac_export_csv');
 
     $vehicles = ia_get_vehicles(array('orderby' => 'marque', 'order' => 'ASC'));

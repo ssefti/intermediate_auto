@@ -112,7 +112,7 @@ function commande_reste($c) {
  * ============================================================ */
 add_action('admin_post_commande_save', 'commande_save');
 function commande_save() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('commandes'));
     check_admin_referer('commande_save');
 
     global $wpdb;
@@ -155,7 +155,7 @@ function commande_save() {
 /* ---------- Suppression ---------- */
 add_action('admin_post_commande_delete', 'commande_delete');
 function commande_delete() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('commandes'));
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     check_admin_referer('commande_delete_' . $id);
     if ($id > 0) {
@@ -170,6 +170,7 @@ function commande_delete() {
  *  SECTION COMMANDES
  * ============================================================ */
 function commandes_page_section() {
+    acces_guard(acces_can_view('commandes'));
     if (isset($_GET['view']) && (int)$_GET['view'] > 0) {
         commande_page_bon();
         return;
@@ -177,7 +178,7 @@ function commandes_page_section() {
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'list';
     if (!in_array($tab, array('list', 'edit'), true)) $tab = 'list';
     iac_section_tabs('commandes', $tab);
-    if ($tab === 'edit') commande_page_edit();
+    if ($tab === 'edit') { acces_guard(acces_can_edit('commandes')); commande_page_edit(); }
     else                 commandes_page_list();
 }
 
@@ -189,10 +190,12 @@ function commandes_page_list() {
     $search   = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
     $commandes = commandes_get_all(array('statut' => $statut, 'search' => $search));
 
+    $can_edit = acces_can_edit('commandes');
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Gestion des commandes</h1>';
-    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit')) . '">+ Nouvelle commande</a></div>';
+    if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit')) . '">+ Nouvelle commande</a>';
+    echo '</div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array('csaved' => 'Commande enregistrée.', 'cdeleted' => 'Commande supprimée.');
@@ -234,7 +237,9 @@ function commandes_page_list() {
             echo '<td>' . esc_html(commande_money($c->prix)) . '</td>';
             echo '<td>' . esc_html(commande_money(commande_reste($c))) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($c->statut) . '</span></td>';
-            echo '<td><a href="' . esc_url($bon) . '">📄 Bon de commande</a> | <a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer cette commande ?\')" style="color:#b23b3b">Suppr.</a></td>';
+            echo '<td><a href="' . esc_url($bon) . '">📄 Bon de commande</a>';
+            if ($can_edit) echo ' | <a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer cette commande ?\')" style="color:#b23b3b">Suppr.</a>';
+            echo '</td>';
             echo '</tr>';
         }
     }
@@ -348,7 +353,7 @@ function commande_page_bon() {
     // Barre d'outils (non imprimée)
     echo '<div class="wrap no-print" style="margin-bottom:14px">';
     echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=commandes')) . '">← Retour à la liste</a> ';
-    echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit&id=' . $c->id)) . '">✎ Modifier</a> ';
+    if (acces_can_edit('commandes')) echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit&id=' . $c->id)) . '">✎ Modifier</a> ';
     echo '<button class="iac-btn" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>';
     echo '</div>';
 

@@ -142,7 +142,7 @@ function iac_client_attachment_ids($c) {
  * ============================================================ */
 add_action('admin_post_iac_save_client', 'iac_save_client');
 function iac_save_client() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('clients'));
     check_admin_referer('iac_save_client');
 
     global $wpdb;
@@ -196,7 +196,7 @@ function iac_save_client() {
 /* ---------- Activer / Désactiver ---------- */
 add_action('admin_post_iac_toggle_client', 'iac_toggle_client');
 function iac_toggle_client() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('clients'));
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     check_admin_referer('iac_toggle_' . $id);
     $msg = '';
@@ -218,6 +218,7 @@ function iac_toggle_client() {
  *  SECTION CLIENTS (onglets : Clients / Ajouter, + fiche)
  * ============================================================ */
 function iac_page_clients_section() {
+    acces_guard(acces_can_view('clients'));
     // Fiche d'un client (rendue dans la même page → pas de souci d'autorisation)
     if (isset($_GET['view']) && (int)$_GET['view'] > 0) {
         iac_section_tabs('clients', 'list');
@@ -227,7 +228,7 @@ function iac_page_clients_section() {
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'list';
     if (!in_array($tab, array('list', 'edit'), true)) $tab = 'list';
     iac_section_tabs('clients', $tab);
-    if ($tab === 'edit') iac_page_client_edit();
+    if ($tab === 'edit') { acces_guard(acces_can_edit('clients')); iac_page_client_edit(); }
     else                 iac_page_clients_list();
 }
 
@@ -244,10 +245,12 @@ function iac_page_clients_list() {
         'orderby' => 'id', 'order' => 'DESC',
     ));
 
+    $can_edit = acces_can_edit('clients');
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Clients</h1>';
-    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=ia-clients&tab=edit')) . '">+ Ajouter un client</a></div>';
+    if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=ia-clients&tab=edit')) . '">+ Ajouter un client</a>';
+    echo '</div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array(
@@ -300,11 +303,14 @@ function iac_page_clients_list() {
             echo '<td>' . esc_html($veh) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($c->statut_client) . '</span></td>';
             echo '<td>' . ($c->active ? '<span class="iac-pill ok">Actif</span>' : '<span class="iac-pill sold">Inactif</span>') . '</td>';
-            echo '<td><a href="' . esc_url($view) . '">Voir</a> | <a href="' . esc_url($edit) . '">Modifier</a> | ';
-            if ($c->active) {
-                echo '<a href="' . esc_url($toggle) . '" onclick="return confirm(\'Désactiver ce client ?\')" style="color:#b9770e">Désactiver</a>';
-            } else {
-                echo '<a href="' . esc_url($toggle) . '" style="color:#1a7a3c">Réactiver</a>';
+            echo '<td><a href="' . esc_url($view) . '">Voir</a>';
+            if ($can_edit) {
+                echo ' | <a href="' . esc_url($edit) . '">Modifier</a> | ';
+                if ($c->active) {
+                    echo '<a href="' . esc_url($toggle) . '" onclick="return confirm(\'Désactiver ce client ?\')" style="color:#b9770e">Désactiver</a>';
+                } else {
+                    echo '<a href="' . esc_url($toggle) . '" style="color:#1a7a3c">Réactiver</a>';
+                }
             }
             echo '</td></tr>';
         }
@@ -334,7 +340,8 @@ function iac_page_client_view() {
     echo $c->active ? '<span class="iac-pill ok">Actif</span>' : '<span class="iac-pill sold">Inactif</span>';
     echo '</h1><div>';
     echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=ia-clients')) . '">← Retour</a> ';
-    echo '<a class="iac-btn" href="' . esc_url($edit) . '">✎ Modifier</a></div></div>';
+    if (acces_can_edit('clients')) echo '<a class="iac-btn" href="' . esc_url($edit) . '">✎ Modifier</a>';
+    echo '</div></div>';
 
     // Helper d'affichage d'une ligne
     $row = function($label, $value) {
@@ -417,10 +424,12 @@ function iac_page_client_view() {
     echo '</div>'; // .iac-fiche
 
     echo '<p style="margin-top:22px">';
-    if ($c->active) {
+    if (acces_can_edit('clients')) {
+      if ($c->active) {
         echo '<a href="' . esc_url($toggle) . '" class="button" onclick="return confirm(\'Désactiver ce client ?\')">Désactiver le client</a>';
-    } else {
+      } else {
         echo '<a href="' . esc_url($toggle) . '" class="button">Réactiver le client</a>';
+      }
     }
     echo '</p>';
     echo '</div>';

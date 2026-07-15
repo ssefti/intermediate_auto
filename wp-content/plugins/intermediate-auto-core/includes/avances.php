@@ -141,7 +141,7 @@ function avance_vehicle_label($a) {
  * ============================================================ */
 add_action('admin_post_avance_save', 'avance_save');
 function avance_save() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('avances'));
     check_admin_referer('avance_save');
 
     global $wpdb;
@@ -181,7 +181,7 @@ function avance_save() {
 /* ---------- Suppression ---------- */
 add_action('admin_post_avance_delete', 'avance_delete');
 function avance_delete() {
-    if (!current_user_can('manage_options')) wp_die('Accès refusé');
+    acces_guard(acces_can_edit('avances'));
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     check_admin_referer('avance_delete_' . $id);
     if ($id > 0) {
@@ -196,10 +196,11 @@ function avance_delete() {
  *  SECTION AVANCES (onglets : Avances / Ajouter)
  * ============================================================ */
 function avances_page_section() {
+    acces_guard(acces_can_view('avances'));
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'list';
     if (!in_array($tab, array('list', 'edit'), true)) $tab = 'list';
     iac_section_tabs('avances', $tab);
-    if ($tab === 'edit') avance_page_edit();
+    if ($tab === 'edit') { acces_guard(acces_can_edit('avances')); avance_page_edit(); }
     else                 avances_page_list();
 }
 
@@ -212,10 +213,12 @@ function avances_page_list() {
     $avances = avances_get_all(array('statut' => $statut, 'search' => $search));
     $total   = avances_total('Encaissée');
 
+    $can_edit = acces_can_edit('avances');
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Gestion des avances</h1>';
-    echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">+ Enregistrer une avance</a></div>';
+    if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">+ Enregistrer une avance</a>';
+    echo '</div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array(
@@ -266,7 +269,11 @@ function avances_page_list() {
             echo '<td>' . esc_html($a->mode_paiement) . '</td>';
             echo '<td>' . esc_html($a->reference) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($a->statut) . '</span></td>';
-            echo '<td><a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer cette avance ?\')" style="color:#b23b3b">Suppr.</a></td>';
+            if ($can_edit) {
+                echo '<td><a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer cette avance ?\')" style="color:#b23b3b">Suppr.</a></td>';
+            } else {
+                echo '<td style="color:#bbb">—</td>';
+            }
             echo '</tr>';
         }
     }

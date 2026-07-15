@@ -21,6 +21,7 @@ function dashboard_money($n) {
  *  PAGE : Tableau de bord
  * ============================================================ */
 function dashboard_page() {
+    acces_guard(acces_has('dashboard_view'));
     global $wpdb;
     iac_admin_style();
 
