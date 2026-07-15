@@ -98,8 +98,13 @@ function iac_save_vehicle() {
     global $wpdb;
     $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
+    // Marque : une nouvelle marque saisie a la priorite et est memorisee
+    $marque_new = sanitize_text_field($_POST['marque_new'] ?? '');
+    $marque     = $marque_new !== '' ? $marque_new : sanitize_text_field($_POST['marque'] ?? '');
+    if ($marque_new !== '') iac_marque_add($marque_new);
+
     $data = array(
-        'marque'     => sanitize_text_field($_POST['marque'] ?? ''),
+        'marque'     => $marque,
         'modele'     => sanitize_text_field($_POST['modele'] ?? ''),
         'version'    => sanitize_text_field($_POST['version'] ?? ''),
         'boite'      => sanitize_text_field($_POST['boite'] ?? ''),
@@ -359,7 +364,9 @@ function iac_page_edit() {
     echo '<div class="row">';
     echo '<div class="fld"><label>Marque</label><select name="marque">';
     foreach (iac_marques() as $m) echo '<option ' . selected($get('marque'), $m, false) . '>' . esc_html($m) . '</option>';
-    echo '</select></div>';
+    echo '</select>';
+    echo '<input type="text" name="marque_new" value="" placeholder="➕ ou saisir une nouvelle marque" style="margin-top:6px;width:100%">';
+    echo '<span style="color:#777;font-size:12px">Si la marque n\'est pas dans la liste, saisissez-la ici : elle sera ajoutée à la liste.</span></div>';
     echo '<div class="fld"><label>Modèle</label><input type="text" name="modele" value="' . esc_attr($get('modele')) . '" required></div>';
     echo '</div>';
 

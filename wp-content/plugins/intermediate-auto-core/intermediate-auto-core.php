@@ -20,7 +20,33 @@ function iac_table() {
 }
 
 /** Listes de référence (réutilisées par le formulaire et les filtres) */
-function iac_marques()    { return array('Geely','MG','Livan','GAC','Jetta','Chery','Changan','T-Roc','Rongwei','Volkswagen','Roewe','Jetour','Audi','Autre'); }
+/** Marques de référence (fixes) */
+function iac_marques_base() { return array('Geely','MG','Livan','GAC','Jetta','Chery','Changan','T-Roc','Rongwei','Volkswagen','Roewe','Jetour','Audi'); }
+
+/** Marques ajoutées manuellement (mémorisées en base) */
+function iac_marques_custom() {
+    $v = get_option('iac_marques_custom', array());
+    return is_array($v) ? $v : array();
+}
+
+/** Enregistre une nouvelle marque si elle n'existe pas déjà */
+function iac_marque_add($name) {
+    $name = trim(wp_unslash($name));
+    if ($name === '' || strtolower($name) === 'autre') return;
+    $list  = iac_marques_custom();
+    $known = array_map('strtolower', array_merge(iac_marques_base(), $list));
+    if (!in_array(strtolower($name), $known, true)) {
+        $list[] = $name;
+        update_option('iac_marques_custom', $list);
+    }
+}
+
+/** Liste complète : marques de référence + personnalisées + « Autre » */
+function iac_marques() {
+    $list = array_values(array_unique(array_merge(iac_marques_base(), iac_marques_custom())));
+    $list[] = 'Autre';
+    return $list;
+}
 
 /** Marques réellement présentes dans le catalogue (pour les filtres) */
 function ia_marques_in_use() {
