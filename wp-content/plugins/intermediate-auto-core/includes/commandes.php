@@ -274,11 +274,12 @@ function commande_page_edit() {
         }
     }
     echo '</select></div>';
-    echo '<div class="fld"><label>Véhicule</label><select name="vehicule_id" required>';
+    echo '<div class="fld"><label>Véhicule</label><select id="commande_vehicule" name="vehicule_id" required>';
     echo '<option value="">— Choisir un véhicule —</option>';
     if (function_exists('ia_get_vehicles')) {
         foreach (ia_get_vehicles(array('orderby' => 'marque', 'order' => 'ASC')) as $vv) {
-            echo '<option value="' . (int)$vv->id . '" ' . selected((int)$get('vehicule_id', 0), (int)$vv->id, false) . '>' . esc_html(ia_vehicle_title($vv)) . '</option>';
+            $vprix = (int)$vv->prix * 10000; // le prix véhicule est en ×10 000 DA
+            echo '<option value="' . (int)$vv->id . '" data-prix="' . esc_attr($vprix) . '" ' . selected((int)$get('vehicule_id', 0), (int)$vv->id, false) . '>' . esc_html(ia_vehicle_title($vv)) . '</option>';
         }
     }
     echo '</select></div>';
@@ -292,7 +293,7 @@ function commande_page_edit() {
 
     // Prix + avance
     echo '<div class="row">';
-    echo '<div class="fld"><label>Prix total (DA)</label><input type="number" step="0.01" min="0" name="prix" value="' . esc_attr($get('prix', '')) . '" required></div>';
+    echo '<div class="fld"><label>Prix total (DA)</label><input type="number" step="0.01" min="0" id="commande_prix" name="prix" value="' . esc_attr($get('prix', '')) . '" required></div>';
     echo '<div class="fld"><label>Avance versée (DA) <span style="font-weight:400;color:#999">— si aucune avance liée</span></label><input type="number" step="0.01" min="0" name="avance" value="' . esc_attr($get('avance', '0')) . '"></div>';
     echo '</div>';
 
@@ -323,6 +324,17 @@ function commande_page_edit() {
 
     echo '<p style="margin-top:22px"><button type="submit" class="iac-btn">' . ($id ? 'Enregistrer et voir le bon' : 'Créer la commande') . '</button></p>';
     echo '</form></div>';
+    ?>
+    <script>
+    jQuery(function($){
+      // Récupère automatiquement le prix du véhicule choisi
+      $('#commande_vehicule').on('change', function(){
+        var p = $(this).find('option:selected').data('prix');
+        if (p !== undefined && parseFloat(p) > 0) $('#commande_prix').val(p);
+      });
+    });
+    </script>
+    <?php
 }
 
 /* ============================================================
