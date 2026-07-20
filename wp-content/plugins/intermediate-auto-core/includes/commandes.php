@@ -473,5 +473,90 @@ function commande_page_bon() {
 
         <div class="bon-foot"><?php echo esc_html(SOCIETE_NOM); ?> · Bon de commande <?php echo esc_html($c->numero); ?></div>
     </div>
+
+    <?php
+    // ---- 2e page : contrat d'accompagnement (bilingue FR / AR) ----
+    $ct_articles = array(
+        array(
+            "Article 1 – Objet du contrat",
+            "La société s'engage à accompagner le client dans toutes les étapes de l'acquisition du véhicule, notamment la recherche, l'achat, l'exportation, le transport, l'importation et les formalités administratives jusqu'à sa livraison, conformément aux informations figurant sur le Bon de Commande.",
+            "المادة 1 – موضوع العقد: تلتزم الشركة بمرافقة الزبون في جميع مراحل اقتناء المركبة، بما في ذلك البحث عنها وشراؤها وتصديرها وشحنها واستيرادها واستكمال الإجراءات الإدارية إلى غاية تسليمها، وفقاً للبيانات الواردة في طلب الشراء.",
+        ),
+        array(
+            "Article 2 – Désignation du véhicule",
+            "Le client déclare avoir librement choisi le véhicule objet de la commande, notamment la marque, le modèle, la version, la couleur ainsi que les options et équipements souhaités. Les caractéristiques mentionnées sur le Bon de Commande font partie intégrante du présent contrat.",
+            "المادة 2 – تحديد المركبة: يقر الزبون بأنه اختار بحرية المركبة محل الطلب، بما في ذلك العلامة التجارية والطراز والفئة واللون وكافة التجهيزات والخيارات المطلوبة. وتعتبر المواصفات المدونة في طلب الشراء جزءاً لا يتجزأ من هذا العقد.",
+        ),
+        array(
+            "Article 3 – Prix",
+            "Le prix du véhicule indiqué sur le Bon de Commande est fixe et définitif. Seul le coût du dédouanement est susceptible d'évoluer en fonction des droits, taxes et frais appliqués par les autorités compétentes au moment de l'arrivée du véhicule. Le client reconnaît avoir été informé que ces frais sont indépendants de la volonté de la société et demeurent entièrement à sa charge.",
+            "المادة 3 – السعر: يعتبر سعر المركبة المحدد في طلب الشراء ثابتاً ونهائياً. أما تكاليف التخليص الجمركي فقد تتغير وفقاً للرسوم والضرائب والمصاريف التي تحددها الجهات المختصة عند وصول المركبة. ويقر الزبون بأنه أُبلغ بأن هذه التكاليف خارجة عن إرادة الشركة وتبقى على عاتقه بالكامل.",
+        ),
+        array(
+            "Article 4 – Modalités de paiement",
+            "Le client s'engage à respecter les modalités et échéances de paiement convenues dans le Bon de Commande. Tout retard de paiement peut entraîner la suspension ou le report de l'exécution de la commande jusqu'à régularisation de la situation.",
+            "المادة 4 – شروط الدفع: يلتزم الزبون باحترام شروط وآجال الدفع المحددة في طلب الشراء. ويجوز للشركة تعليق أو تأجيل تنفيذ الطلب في حالة التأخر في الدفع إلى غاية تسوية الوضعية.",
+        ),
+        array(
+            "Article 5 – Délai de livraison",
+            "Le délai moyen de livraison est estimé à 90 jours à compter de la validation de la commande et de la réception du paiement convenu. Ce délai est donné à titre indicatif et peut être prolongé en cas de force majeure, de retard du constructeur, du transporteur, des autorités administratives ou de toute circonstance indépendante de la volonté de la société.",
+            "المادة 5 – أجل التسليم: يقدر متوسط مدة تسليم المركبة بـ 90 يوماً ابتداءً من تأكيد الطلب واستلام الدفعة المتفق عليها. ويعتبر هذا الأجل تقديرياً، وقد يتم تمديده في حالات القوة القاهرة أو تأخر المصنع أو شركة النقل أو الجهات الإدارية أو لأي سبب خارج عن إرادة الشركة.",
+        ),
+        array(
+            "Article 6 – Accompagnement au dédouanement",
+            "La société met gratuitement à la disposition du client un service d'accompagnement pour les formalités de dédouanement. Cette assistance est fournie à titre gracieux. Toutefois, les droits de douane, taxes, frais administratifs et toute autre charge imposée par les autorités compétentes restent exclusivement à la charge du client.",
+            "المادة 6 – مرافقة إجراءات التخليص الجمركي: تضع الشركة تحت تصرف الزبون خدمة مرافقة مجانية لإتمام إجراءات التخليص الجمركي. وتقدم هذه الخدمة دون مقابل، غير أن الرسوم الجمركية والضرائب والمصاريف الإدارية وأي أعباء تفرضها الجهات المختصة تبقى على عاتق الزبون وحده.",
+        ),
+        array(
+            "Article 7 – Responsabilité",
+            "La société s'engage à accomplir sa mission avec diligence et professionnalisme. Elle ne pourra être tenue responsable des retards, surcoûts ou empêchements résultant d'événements indépendants de sa volonté, notamment les décisions administratives, les modifications réglementaires, les retards logistiques ou les cas de force majeure.",
+            "المادة 7 – المسؤولية: تلتزم الشركة بأداء مهامها بكل مهنية وحرص، ولا تتحمل مسؤولية أي تأخير أو تكاليف إضافية أو عراقيل ناتجة عن ظروف خارجة عن إرادتها، بما في ذلك القرارات الإدارية أو التعديلات التنظيمية أو التأخر في النقل أو حالات القوة القاهرة.",
+        ),
+        array(
+            "Article 8 – Acceptation",
+            "La signature du présent contrat vaut acceptation pleine et entière de l'ensemble de ses dispositions. Le présent contrat est indissociable du Bon de Commande et en constitue une annexe contractuelle.",
+            "المادة 8 – القبول: يعتبر توقيع هذا العقد موافقة صريحة ونهائية على جميع أحكامه، ويعد هذا العقد جزءاً لا يتجزأ من طلب الشراء ومرفقاً تعاقدياً له.",
+        ),
+    );
+    ?>
+    <style>
+    .contrat{max-width:820px;background:#fff;margin:26px 20px 30px;padding:34px 40px;border:1px solid #e2e4e9;border-radius:8px;color:#222;font-size:12px;line-height:1.55}
+    .contrat .ct-head{text-align:center;border-bottom:2px solid #D4AF37;padding-bottom:12px;margin-bottom:12px}
+    .contrat .ct-head img{height:54px;margin-bottom:6px}
+    .contrat .ct-head h2{font-size:15px;margin:4px 0 2px;color:#1a1a1a}
+    .contrat .ct-head .ar{font-size:14px;color:#444}
+    .contrat .ct-colhead{display:grid;grid-template-columns:1fr 1fr;gap:24px;font-weight:700;color:#C05A00;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:6px}
+    .contrat .art{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:8px 0;border-bottom:1px solid #f4f4f4;page-break-inside:avoid}
+    .contrat .art .fr strong{color:#1a1a1a}
+    .contrat .ar{direction:rtl;text-align:right;line-height:1.8}
+    .contrat .ct-sign{margin-top:22px}
+    .contrat .ct-sign .fill{margin:6px 0;color:#333}
+    .contrat .ct-sign .cols{display:flex;gap:40px;margin-top:20px}
+    .contrat .ct-sign .cols > div{flex:1;text-align:center}
+    .contrat .ct-sign .line{border-top:1px solid #999;margin-top:58px;padding-top:8px;font-size:11.5px;color:#555}
+    @media print{ .contrat{break-before:page;page-break-before:always;border:0;margin:0} }
+    </style>
+    <div class="contrat">
+        <div class="ct-head">
+            <?php if ($logo): ?><img src="<?php echo esc_url($logo); ?>" alt="<?php echo esc_attr(SOCIETE_NOM); ?>"><?php endif; ?>
+            <h2>CONTRAT D'ACCOMPAGNEMENT À L'ACHAT ET À L'IMPORTATION D'UN VÉHICULE</h2>
+            <div class="ar">عقد مرافقة شراء واستيراد مركبة</div>
+        </div>
+        <div class="ct-colhead"><div>Français</div><div class="ar">العربية</div></div>
+        <?php foreach ($ct_articles as $a): ?>
+        <div class="art">
+            <div class="fr"><strong><?php echo esc_html($a[0]); ?></strong> <?php echo esc_html($a[1]); ?></div>
+            <div class="ar"><?php echo esc_html($a[2]); ?></div>
+        </div>
+        <?php endforeach; ?>
+        <div class="ct-sign">
+            <div class="fill">Fait à / حرر بـ : ..............................................</div>
+            <div class="fill">Le / بتاريخ : ......... / ......... / .........</div>
+            <div class="cols">
+                <div><div class="line"><strong>Le Client / الزبون</strong><br>Nom, signature et mention « Lu et approuvé »</div></div>
+                <div><div class="line"><strong>La Société / الشركة</strong><br>Cachet, nom et signature</div></div>
+            </div>
+        </div>
+    </div>
     <?php
 }
