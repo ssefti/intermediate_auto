@@ -44,12 +44,14 @@ function dashboard_page() {
     $ca = $nb_cmd = $enc = $reste_total = 0;
     $clients_periode = 0;
     if ($has_cmd) {
-        $ca = (float)$wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(prix),0) FROM {$ct} WHERE statut <> %s AND date_commande BETWEEN %s AND %s", 'Annulée', $from, $to));
         $nb_cmd = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$ct} WHERE date_commande BETWEEN %s AND %s", $from, $to));
         $clients_periode = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT client_id) FROM {$ct} WHERE client_id>0 AND date_commande BETWEEN %s AND %s", $from, $to));
-        // Reste à encaisser (commandes non annulées de la période)
+        // CA net (après remise) + reste à encaisser — commandes non annulées de la période
         $cmds = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$ct} WHERE statut <> %s AND date_commande BETWEEN %s AND %s", 'Annulée', $from, $to));
-        if (function_exists('commande_reste')) foreach ($cmds as $cm) $reste_total += commande_reste($cm);
+        foreach ($cmds as $cm) {
+            $ca          += function_exists('commande_prix_net') ? commande_prix_net($cm) : (float)$cm->prix;
+            $reste_total += function_exists('commande_reste')    ? commande_reste($cm)    : 0;
+        }
     }
     if ($has_av) {
         $enc = (float)$wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(montant),0) FROM {$at} WHERE statut=%s AND date_avance BETWEEN %s AND %s", 'Encaissée', $from, $to));
@@ -99,7 +101,7 @@ function dashboard_page() {
     echo '<h2 style="font-size:15px;margin:0 0 12px">Chiffre d\'affaires par client</h2>';
     if ($has_cmd) {
         $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT client_id, SUM(prix) total, COUNT(*) n FROM {$ct} WHERE statut <> %s AND date_commande BETWEEN %s AND %s GROUP BY client_id ORDER BY total DESC LIMIT 10",
+            "SELECT client_id, SUM(prix * (1 - COALESCE(remise,0)/100)) total, COUNT(*) n FROM {$ct} WHERE statut <> %s AND date_commande BETWEEN %s AND %s GROUP BY client_id ORDER BY total DESC LIMIT 10",
             'Annulée', $from, $to));
         if ($rows) {
             echo '<table class="wp-list-table widefat striped"><thead><tr><th>Client</th><th>Commandes</th><th>CA</th></tr></thead><tbody>';
@@ -118,7 +120,7 @@ function dashboard_page() {
     echo '<div class="iac-card" style="padding:18px;margin-bottom:22px">';
     echo '<h2 style="font-size:15px;margin:0 0 12px">Commandes par statut</h2>';
     if ($has_cmd) {
-        $st = $wpdb->get_results($wpdb->prepare("SELECT statut, COUNT(*) n, COALESCE(SUM(prix),0) total FROM {$ct} WHERE date_commande BETWEEN %s AND %s GROUP BY statut", $from, $to));
+        $st = $wpdb->get_results($wpdb->prepare("SELECT statut, COUNT(*) n, COALESCE(SUM(prix * (1 - COALESCE(remise,0)/100)),0) total FROM {$ct} WHERE date_commande BETWEEN %s AND %s GROUP BY statut", $from, $to));
         if ($st) {
             echo '<table class="wp-list-table widefat striped"><tbody>';
             foreach ($st as $r) echo '<tr><td>' . esc_html($r->statut) . '</td><td>' . (int)$r->n . '</td><td>' . esc_html(dashboard_money($r->total)) . '</td></tr>';
@@ -149,7 +151,7 @@ function dashboard_page() {
     // ---- Évolution mensuelle du CA ----
     if ($has_cmd) {
         $mois = $wpdb->get_results($wpdb->prepare(
-            "SELECT DATE_FORMAT(date_commande,'%%Y-%%m') ym, COALESCE(SUM(prix),0) total, COUNT(*) n FROM {$ct} WHERE statut <> %s AND date_commande BETWEEN %s AND %s GROUP BY ym ORDER BY ym",
+            "SELECT DATE_FORMAT(date_commande,'%%Y-%%m') ym, COALESCE(SUM(prix * (1 - COALESCE(remise,0)/100)),0) total, COUNT(*) n FROM {$ct} WHERE statut <> %s AND date_commande BETWEEN %s AND %s GROUP BY ym ORDER BY ym",
             'Annulée', $from, $to));
         if ($mois) {
             $maxv = 0; foreach ($mois as $m) $maxv = max($maxv, (float)$m->total);
