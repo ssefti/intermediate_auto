@@ -24,6 +24,52 @@ function avance_money($n) {
     return number_format((float)$n, 2, ',', ' ') . ' DA';
 }
 
+/* ---------- Montant en toutes lettres (français) ---------- */
+function avance_fr_below100($n, $plural = true) {
+    $u = array('zéro','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf');
+    if ($n < 20) return $u[$n];
+    $t = intdiv($n, 10); $r = $n % 10;
+    if ($t == 7 || $t == 9) {
+        if ($t == 7 && $r == 1) return 'soixante et onze';
+        $prefix = ($t == 7) ? 'soixante' : 'quatre-vingt';
+        return $prefix . '-' . $u[10 + $r];
+    }
+    $tens = array(2 => 'vingt', 3 => 'trente', 4 => 'quarante', 5 => 'cinquante', 6 => 'soixante', 8 => 'quatre-vingt');
+    $word = $tens[$t];
+    if ($r == 0) return ($t == 8 && $plural) ? 'quatre-vingts' : $word;
+    if ($r == 1 && $t != 8) return $word . ' et un';
+    return $word . '-' . $u[$r];
+}
+function avance_fr_below1000($n, $plural = true) {
+    if ($n < 100) return avance_fr_below100($n, $plural);
+    $h = intdiv($n, 100); $r = $n % 100;
+    $cent = ($h == 1) ? 'cent' : (avance_fr_below100($h) . ' cent');
+    if ($r == 0) return ($h > 1 && $plural) ? $cent . 's' : $cent;
+    return $cent . ' ' . avance_fr_below100($r, $plural);
+}
+function avance_num_fr($n) {
+    $n = (int)$n;
+    if ($n === 0) return 'zéro';
+    $out = array();
+    $md = intdiv($n, 1000000000); $n %= 1000000000;
+    $mi = intdiv($n, 1000000);    $n %= 1000000;
+    $ml = intdiv($n, 1000);       $n %= 1000;
+    if ($md > 0) $out[] = ($md == 1 ? 'un' : avance_fr_below1000($md, true)) . ' milliard' . ($md > 1 ? 's' : '');
+    if ($mi > 0) $out[] = ($mi == 1 ? 'un' : avance_fr_below1000($mi, true)) . ' million' . ($mi > 1 ? 's' : '');
+    if ($ml > 0) $out[] = ($ml == 1 ? 'mille' : avance_fr_below1000($ml, false) . ' mille');
+    if ($n  > 0) $out[] = avance_fr_below1000($n, true);
+    return implode(' ', $out);
+}
+/** « Trois cent mille dinars algériens et cinquante centimes » */
+function avance_montant_lettres($montant) {
+    $montant  = round((float)$montant, 2);
+    $dinars   = (int)floor($montant);
+    $centimes = (int)round(($montant - $dinars) * 100);
+    $txt = avance_num_fr($dinars) . ' dinar' . ($dinars > 1 ? 's' : '') . ' algérien' . ($dinars > 1 ? 's' : '');
+    if ($centimes > 0) $txt .= ' et ' . avance_num_fr($centimes) . ' centime' . ($centimes > 1 ? 's' : '');
+    return ucfirst($txt);
+}
+
 /* ============================================================
  *  INSTALLATION / MISE À NIVEAU DE LA TABLE
  * ============================================================ */
@@ -295,6 +341,7 @@ function avance_page_recu() {
         <div class="recu-amount">
             <div class="lbl">Montant reçu</div>
             <div class="val"><?php echo esc_html(avance_money($a->montant)); ?></div>
+            <div style="margin-top:10px;font-size:12.5px;color:#555;font-style:italic">Arrêté le présent reçu à la somme de : <?php echo esc_html(avance_montant_lettres($a->montant)); ?>.</div>
         </div>
 
         <?php if ($cmd):
