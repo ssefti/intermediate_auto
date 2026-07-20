@@ -175,9 +175,11 @@ function avance_save() {
     } else {
         $data['created_at'] = current_time('mysql');
         $wpdb->insert(avances_table(), $data);
+        $id  = (int)$wpdb->insert_id;
         $msg = 'acreated';
     }
-    wp_safe_redirect(admin_url('admin.php?page=avances&iac_msg=' . $msg));
+    // Après enregistrement, on ouvre directement le reçu du paiement
+    wp_safe_redirect(admin_url('admin.php?page=avances&recu=' . $id . '&iac_msg=' . $msg));
     exit;
 }
 
@@ -200,11 +202,120 @@ function avance_delete() {
  * ============================================================ */
 function avances_page_section() {
     acces_guard(acces_can_view('avances'));
+    if (isset($_GET['recu']) && (int)$_GET['recu'] > 0) { avance_page_recu(); return; }
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'list';
     if (!in_array($tab, array('list', 'edit'), true)) $tab = 'list';
     iac_section_tabs('avances', $tab);
     if ($tab === 'edit') { acces_guard(acces_can_edit('avances')); avance_page_edit(); }
     else                 avances_page_list();
+}
+
+/* ============================================================
+ *  PAGE : Reçu de paiement imprimable
+ * ============================================================ */
+function avance_page_recu() {
+    $id = isset($_GET['recu']) ? (int)$_GET['recu'] : 0;
+    $a  = $id ? avance_get($id) : null;
+    iac_admin_style();
+    if (!$a) {
+        echo '<div class="wrap"><h1>Reçu de paiement</h1><p>Paiement introuvable.</p>';
+        echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=avances')) . '">← Retour à la liste</a></div>';
+        return;
+    }
+
+    $client  = ($a->client_id && function_exists('iac_get_client')) ? iac_get_client($a->client_id) : null;
+    $cmd     = ($a->commande_id && function_exists('commande_get')) ? commande_get($a->commande_id) : null;
+    $logo    = function_exists('ia_img') ? ia_img('Logo_intermediate_auto_black.jpeg') : '';
+    $soc     = defined('SOCIETE_NOM') ? SOCIETE_NOM : get_bloginfo('name');
+    $addr    = defined('IA_ADDRESS') ? IA_ADDRESS : '';
+    $phone   = defined('IA_PHONE') ? IA_PHONE : '';
+    $email   = defined('IA_EMAIL') ? IA_EMAIL : '';
+    $datestr = ($a->date_avance && $a->date_avance !== '0000-00-00') ? date_i18n('j F Y', strtotime($a->date_avance)) : '';
+    $year    = ($a->date_avance && $a->date_avance !== '0000-00-00') ? substr($a->date_avance, 0, 4) : current_time('Y');
+    $num     = 'REC-' . $year . '-' . str_pad($id, 4, '0', STR_PAD_LEFT);
+
+    echo '<div class="wrap no-print" style="margin-bottom:14px">';
+    if (isset($_GET['iac_msg']) && $_GET['iac_msg'] === 'acreated') {
+        echo '<div class="notice notice-success" style="margin:0 0 12px"><p>Paiement enregistré. Voici le reçu.</p></div>';
+    }
+    echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=avances')) . '">← Retour à la liste</a> ';
+    if (acces_can_edit('avances')) echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=avances&tab=edit&id=' . $id)) . '">✎ Modifier</a> ';
+    echo '<button class="iac-btn" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>';
+    echo '</div>';
+    ?>
+    <style>
+    .recu{max-width:640px;background:#fff;margin:0 20px 30px;padding:34px 38px;border:1px solid #e2e4e9;border-radius:8px;color:#222;font-size:14px;line-height:1.6}
+    .recu-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #D4AF37;padding-bottom:16px}
+    .recu-top img{height:64px}
+    .recu-soc{text-align:right;font-size:12.5px;color:#444}
+    .recu-soc b{font-size:15px;color:#1a1a1a;display:block;margin-bottom:3px}
+    .recu-title{text-align:center;margin:20px 0}
+    .recu-title h2{font-size:22px;letter-spacing:1px;margin:0;color:#1a1a1a}
+    .recu-title .num{display:inline-block;margin-top:8px;background:#1A1A1A;color:#fff;padding:4px 14px;border-radius:6px;font-weight:700;letter-spacing:1px}
+    .recu-row{display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px dashed #eee}
+    .recu-row span{color:#777}
+    .recu-amount{margin:20px 0;text-align:center;background:#f7f8fa;border-radius:10px;padding:16px}
+    .recu-amount .lbl{color:#777;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+    .recu-amount .val{font-size:26px;font-weight:800;color:#C05A00}
+    .recu-sign{display:flex;gap:40px;margin-top:40px}
+    .recu-sign div{flex:1;text-align:center}
+    .recu-sign .line{border-top:1px solid #999;margin-top:50px;padding-top:8px;font-weight:600;color:#555;font-size:12px}
+    .recu-foot{margin-top:24px;border-top:1px solid #eee;padding-top:10px;text-align:center;font-size:11px;color:#999}
+    @media print{
+        #adminmenumain,#wpadminbar,#wpfooter,#screen-meta,#screen-meta-links,.no-print,.update-nag,.notice{display:none!important}
+        #wpcontent,#wpbody-content{margin:0!important;padding:0!important}
+        html.wp-toolbar{padding-top:0!important}
+        .recu{border:0;margin:0;max-width:100%}
+        @page{margin:16mm}
+    }
+    </style>
+    <div class="recu">
+        <div class="recu-top">
+            <?php if ($logo): ?><img src="<?php echo esc_url($logo); ?>" alt="<?php echo esc_attr($soc); ?>"><?php else: ?><b><?php echo esc_html($soc); ?></b><?php endif; ?>
+            <div class="recu-soc">
+                <b><?php echo esc_html($soc); ?></b>
+                <?php if ($addr)  echo esc_html($addr) . '<br>'; ?>
+                <?php if ($phone) echo 'Tél : ' . esc_html($phone) . '<br>'; ?>
+                <?php if ($email) echo esc_html($email); ?>
+            </div>
+        </div>
+        <div class="recu-title">
+            <h2>REÇU DE PAIEMENT</h2>
+            <div class="num"><?php echo esc_html($num); ?></div>
+        </div>
+        <div class="recu-row"><span>Date</span><b><?php echo esc_html($datestr ?: '—'); ?></b></div>
+        <div class="recu-row"><span>Reçu de</span><b><?php echo esc_html($client ? iac_client_name($client) : '—'); ?></b></div>
+        <?php if ($cmd): ?>
+        <div class="recu-row"><span>Commande</span><b><?php echo esc_html($cmd->numero); ?></b></div>
+        <?php endif; ?>
+        <div class="recu-row"><span>Type de paiement</span><b><?php echo esc_html(isset($a->type_paiement) && $a->type_paiement ? $a->type_paiement : 'Paiement'); ?></b></div>
+        <div class="recu-row"><span>Mode</span><b><?php echo esc_html($a->mode_paiement ?: '—'); if ($a->reference) echo ' — réf. ' . esc_html($a->reference); ?></b></div>
+        <div class="recu-row"><span>Statut</span><b><?php echo esc_html($a->statut); ?></b></div>
+
+        <div class="recu-amount">
+            <div class="lbl">Montant reçu</div>
+            <div class="val"><?php echo esc_html(avance_money($a->montant)); ?></div>
+        </div>
+
+        <?php if ($cmd):
+            $c_net   = function_exists('commande_prix_net') ? commande_prix_net($cmd) : (float)$cmd->prix;
+            $c_paid  = function_exists('avances_sum_for_commande') ? avances_sum_for_commande($cmd->id) : 0;
+            $c_reste = function_exists('commande_reste') ? commande_reste($cmd) : max(0, $c_net - $c_paid);
+        ?>
+        <div class="recu-row"><span>Total de la commande (après remise)</span><b><?php echo esc_html(avance_money($c_net)); ?></b></div>
+        <div class="recu-row"><span>Total déjà payé</span><b><?php echo esc_html(avance_money($c_paid)); ?></b></div>
+        <div class="recu-row"><span style="color:#C05A00">Reste à payer</span><b style="color:#C05A00"><?php echo esc_html(avance_money($c_reste)); ?></b></div>
+        <?php endif; ?>
+
+        <?php if ($a->notes): ?><p style="margin-top:14px;color:#555"><strong>Note :</strong> <?php echo nl2br(esc_html($a->notes)); ?></p><?php endif; ?>
+
+        <div class="recu-sign">
+            <div><div class="line">Le client</div></div>
+            <div><div class="line">Pour <?php echo esc_html($soc); ?> — cachet et signature</div></div>
+        </div>
+        <div class="recu-foot"><?php echo esc_html($soc); ?> · Reçu <?php echo esc_html($num); ?></div>
+    </div>
+    <?php
 }
 
 /* ============================================================
@@ -284,11 +395,12 @@ function avances_page_list() {
             echo '<td>' . $reste_cell . '</td>';
             echo '<td>' . esc_html($a->mode_paiement) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($a->statut) . '</span></td>';
+            $recu = admin_url('admin.php?page=avances&recu=' . $a->id);
+            echo '<td><a href="' . esc_url($recu) . '">🧾 Reçu</a>';
             if ($can_edit) {
-                echo '<td><a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer ce paiement ?\')" style="color:#b23b3b">Suppr.</a></td>';
-            } else {
-                echo '<td style="color:#bbb">—</td>';
+                echo ' | <a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer ce paiement ?\')" style="color:#b23b3b">Suppr.</a>';
             }
+            echo '</td>';
             echo '</tr>';
         }
     }
