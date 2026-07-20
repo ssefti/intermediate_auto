@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('COMMANDES_VER', '1.0');
+define('COMMANDES_VER', '1.1');
 
 /** Coordonnées légales de la société (modifiables ici si besoin) */
 if (!defined('SOCIETE_NOM'))     define('SOCIETE_NOM', 'Intermediate Auto');
@@ -46,6 +46,7 @@ function commandes_maybe_install() {
         date_commande DATE NULL DEFAULT NULL,
         couleur VARCHAR(120) NOT NULL DEFAULT '',
         prix DECIMAL(14,2) NOT NULL DEFAULT 0,
+        remise DECIMAL(5,2) NOT NULL DEFAULT 0,
         avance DECIMAL(14,2) NOT NULL DEFAULT 0,
         mode_paiement VARCHAR(40) NOT NULL DEFAULT '',
         delai_livraison VARCHAR(120) NOT NULL DEFAULT '',
@@ -102,9 +103,15 @@ function commande_avance_effective($c) {
     return (float)$c->avance;
 }
 
-/** Reste à payer d'une commande */
+/** Prix après remise (%) */
+function commande_prix_net($c) {
+    $r = isset($c->remise) ? max(0, min(100, (float)$c->remise)) : 0;
+    return (float)$c->prix * (1 - $r / 100);
+}
+
+/** Reste à payer d'une commande (sur le prix après remise) */
 function commande_reste($c) {
-    return max(0, (float)$c->prix - commande_avance_effective($c));
+    return max(0, commande_prix_net($c) - commande_avance_effective($c));
 }
 
 /* ============================================================
@@ -121,6 +128,8 @@ function commande_save() {
     if ($date === '') $date = null;
     $prix   = (float)str_replace(array(' ', ','), array('', '.'), $_POST['prix'] ?? '0');
     $avance = (float)str_replace(array(' ', ','), array('', '.'), $_POST['avance'] ?? '0');
+    $remise = (float)str_replace(',', '.', $_POST['remise'] ?? '0');
+    $remise = max(0, min(100, $remise));
 
     $data = array(
         'client_id'       => (int)($_POST['client_id'] ?? 0),
@@ -128,6 +137,7 @@ function commande_save() {
         'date_commande'   => $date,
         'couleur'         => sanitize_text_field($_POST['couleur'] ?? ''),
         'prix'            => round($prix, 2),
+        'remise'          => round($remise, 2),
         'avance'          => round($avance, 2),
         'mode_paiement'   => sanitize_text_field($_POST['mode_paiement'] ?? ''),
         'delai_livraison' => sanitize_text_field($_POST['delai_livraison'] ?? ''),
@@ -291,11 +301,13 @@ function commande_page_edit() {
     echo '<div class="fld"><label>Date de commande</label><input type="date" name="date_commande" value="' . esc_attr(($get('date_commande') && $get('date_commande') !== '0000-00-00') ? $get('date_commande') : current_time('Y-m-d')) . '"></div>';
     echo '</div>';
 
-    // Prix + avance
+    // Prix + remise + avance
     echo '<div class="row">';
     echo '<div class="fld"><label>Prix total (DA)</label><input type="number" step="0.01" min="0" id="commande_prix" name="prix" value="' . esc_attr($get('prix', '')) . '" required></div>';
+    echo '<div class="fld"><label>Remise (%)</label><input type="number" step="0.01" min="0" max="100" id="commande_remise" name="remise" value="' . esc_attr($get('remise', '0')) . '"></div>';
     echo '<div class="fld"><label>Avance versée (DA) <span style="font-weight:400;color:#999">— si aucune avance liée</span></label><input type="number" step="0.01" min="0" name="avance" value="' . esc_attr($get('avance', '0')) . '"></div>';
     echo '</div>';
+    echo '<p id="commande_net_line" style="margin:-6px 0 16px;color:#555">Prix après remise : <strong id="commande_net">—</strong></p>';
 
     // Avances liées (module Avances)
     if ($id && function_exists('avances_sum_for_commande')) {
@@ -327,11 +339,21 @@ function commande_page_edit() {
     ?>
     <script>
     jQuery(function($){
+      function fmt(n){ return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' DA'; }
+      function recalcNet(){
+        var prix = parseFloat($('#commande_prix').val()) || 0;
+        var rem  = parseFloat($('#commande_remise').val()) || 0;
+        if (rem < 0) rem = 0; if (rem > 100) rem = 100;
+        $('#commande_net').text(fmt(prix * (1 - rem / 100)));
+      }
       // Récupère automatiquement le prix du véhicule choisi
       $('#commande_vehicule').on('change', function(){
         var p = $(this).find('option:selected').data('prix');
         if (p !== undefined && parseFloat(p) > 0) $('#commande_prix').val(p);
+        recalcNet();
       });
+      $('#commande_prix, #commande_remise').on('input', recalcNet);
+      recalcNet();
     });
     </script>
     <?php
@@ -459,6 +481,13 @@ function commande_page_bon() {
         ?>
         <table class="bon-amounts">
             <tr><td class="lbl">Prix total du véhicule</td><td><?php echo esc_html(commande_money($c->prix)); ?></td></tr>
+            <?php if ((float)$c->remise > 0):
+                $rlabel = rtrim(rtrim(number_format((float)$c->remise, 2, ',', ''), '0'), ',');
+                $montant_remise = (float)$c->prix * (float)$c->remise / 100;
+            ?>
+            <tr><td class="lbl">Remise (<?php echo esc_html($rlabel); ?> %)</td><td>- <?php echo esc_html(commande_money($montant_remise)); ?></td></tr>
+            <tr><td class="lbl">Prix après remise</td><td><strong><?php echo esc_html(commande_money(commande_prix_net($c))); ?></strong></td></tr>
+            <?php endif; ?>
             <?php if ($linked): ?>
                 <?php foreach ($linked as $av): ?>
                 <tr><td class="lbl" style="font-weight:400">Avance<?php
