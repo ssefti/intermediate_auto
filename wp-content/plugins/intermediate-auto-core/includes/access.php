@@ -14,8 +14,8 @@ function acces_options() {
         'vehicules_edit' => 'Création / Modification de véhicules',
         'clients_edit'   => 'Création / Modification des clients',
         'clients_view'   => 'Affichage des clients',
-        'avances_edit'   => 'Création / Modification des avances',
-        'avances_view'   => 'Affichage des avances',
+        'avances_edit'   => 'Création / Modification des paiements',
+        'avances_view'   => 'Affichage des paiements',
         'commandes_edit' => 'Création / Modification des commandes',
         'commandes_view' => 'Affichage des commandes',
     );

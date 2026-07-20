@@ -314,9 +314,9 @@ function commande_page_edit() {
         $linkedsum = avances_sum_for_commande($id);
         $addurl    = admin_url('admin.php?page=avances&tab=edit&commande_id=' . $id);
         echo '<p style="margin:-4px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555">';
-        echo 'Avances encaissées liées à cette commande : <strong>' . esc_html(commande_money($linkedsum)) . '</strong>';
-        echo ' &nbsp;·&nbsp; <a href="' . esc_url($addurl) . '">+ Ajouter une avance pour cette commande</a>';
-        echo '<br><span style="font-size:12px;color:#888">Si des avances sont liées, elles remplacent automatiquement le champ « Avance versée » ci-dessus dans le bon de commande.</span></p>';
+        echo 'Paiements encaissés liés à cette commande : <strong>' . esc_html(commande_money($linkedsum)) . '</strong>';
+        echo ' &nbsp;·&nbsp; <a href="' . esc_url($addurl) . '">+ Ajouter un paiement pour cette commande</a>';
+        echo '<br><span style="font-size:12px;color:#888">Si des paiements sont liés, ils remplacent automatiquement le champ « Avance versée » ci-dessus dans le bon de commande.</span></p>';
     }
 
     // Mode + délai + statut
@@ -490,13 +490,14 @@ function commande_page_bon() {
             <?php endif; ?>
             <?php if ($linked): ?>
                 <?php foreach ($linked as $av): ?>
-                <tr><td class="lbl" style="font-weight:400">Avance<?php
+                <tr><td class="lbl" style="font-weight:400"><?php
+                    echo esc_html(isset($av->type_paiement) && $av->type_paiement ? $av->type_paiement : 'Paiement');
                     if ($av->date_avance && $av->date_avance !== '0000-00-00') echo ' du ' . esc_html(date_i18n('j/m/Y', strtotime($av->date_avance)));
                     if ($av->mode_paiement) echo ' · ' . esc_html($av->mode_paiement);
                     if ($av->statut !== 'Encaissée') echo ' (' . esc_html($av->statut) . ')';
                 ?></td><td><?php echo esc_html(commande_money($av->montant)); ?></td></tr>
                 <?php endforeach; ?>
-                <tr><td class="lbl">Total avances encaissées</td><td><?php echo esc_html(commande_money($avance_eff)); ?></td></tr>
+                <tr><td class="lbl">Total des paiements encaissés</td><td><?php echo esc_html(commande_money($avance_eff)); ?></td></tr>
             <?php else: ?>
                 <tr><td class="lbl">Avance versée<?php if ($c->mode_paiement) echo ' (' . esc_html($c->mode_paiement) . ')'; ?></td><td><?php echo esc_html(commande_money($c->avance)); ?></td></tr>
             <?php endif; ?>

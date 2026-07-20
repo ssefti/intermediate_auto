@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('AVANCES_VER', '1.1');
+define('AVANCES_VER', '1.2');
 
 /** Nom complet de la table des avances */
 function avances_table() {
@@ -17,6 +17,7 @@ function avances_table() {
 /* ---------- Listes de référence ---------- */
 function avance_modes()   { return array('Espèces', 'Chèque', 'Virement', 'Versement bancaire', 'Carte', 'Autre'); }
 function avance_statuts() { return array('Encaissée', 'En attente', 'Annulée'); }
+function avance_types()   { return array('Avance', 'Solde', 'Paiement partiel', 'Autre'); }
 
 /** Formate un montant en DA */
 function avance_money($n) {
@@ -38,6 +39,7 @@ function avances_maybe_install() {
         client_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         vehicule_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         commande_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
+        type_paiement VARCHAR(30) NOT NULL DEFAULT 'Avance',
         montant DECIMAL(14,2) NOT NULL DEFAULT 0,
         date_avance DATE NULL DEFAULT NULL,
         mode_paiement VARCHAR(40) NOT NULL DEFAULT '',
@@ -156,6 +158,7 @@ function avance_save() {
         'client_id'     => (int)($_POST['client_id'] ?? 0),
         'vehicule_id'   => (int)($_POST['vehicule_id'] ?? 0),
         'commande_id'   => (int)($_POST['commande_id'] ?? 0),
+        'type_paiement' => sanitize_text_field($_POST['type_paiement'] ?? 'Avance'),
         'montant'       => round($montant, 2),
         'date_avance'   => $date,
         'mode_paiement' => sanitize_text_field($_POST['mode_paiement'] ?? ''),
@@ -216,15 +219,15 @@ function avances_page_list() {
     $can_edit = acces_can_edit('avances');
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
-    echo '<div class="iac-head"><h1>Gestion des avances</h1>';
-    if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">+ Enregistrer une avance</a>';
+    echo '<div class="iac-head"><h1>Gestion des paiements complémentaires</h1>';
+    if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">+ Enregistrer un paiement</a>';
     echo '</div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array(
-            'acreated' => 'Avance enregistrée.',
-            'aupdated' => 'Avance mise à jour.',
-            'adeleted' => 'Avance supprimée.',
+            'acreated' => 'Paiement enregistré.',
+            'aupdated' => 'Paiement mis à jour.',
+            'adeleted' => 'Paiement supprimé.',
         );
         $k = sanitize_key($_GET['iac_msg']);
         if (isset($m[$k])) echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($m[$k]) . '</p></div>';
@@ -233,7 +236,7 @@ function avances_page_list() {
     // Total encaissé
     echo '<div class="iac-cards" style="grid-template-columns:repeat(2,1fr);max-width:520px">';
     printf('<div class="iac-card"><div class="n">%s</div><div class="l">Total encaissé</div></div>', esc_html(avance_money($total)));
-    printf('<div class="iac-card"><div class="n">%d</div><div class="l">Avances enregistrées</div></div>', count(avances_get_all()));
+    printf('<div class="iac-card"><div class="n">%d</div><div class="l">Paiements enregistrés</div></div>', count(avances_get_all()));
     echo '</div>';
 
     // Filtres statut + recherche
@@ -251,26 +254,28 @@ function avances_page_list() {
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th style="width:110px">Date</th><th>Client</th><th>Véhicule</th><th>Montant</th><th>Mode</th><th>Référence</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th style="width:105px">Date</th><th style="width:110px">Type</th><th>Client</th><th>Commande</th><th>Montant</th><th>Mode</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
 
     if (!$avances) {
-        echo '<tr><td colspan="8">Aucune avance. <a href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">Enregistrez-en une</a>.</td></tr>';
+        echo '<tr><td colspan="8">Aucun paiement. <a href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">Enregistrez-en un</a>.</td></tr>';
     } else {
         foreach ($avances as $a) {
             $edit = admin_url('admin.php?page=avances&tab=edit&id=' . $a->id);
             $del  = wp_nonce_url(admin_url('admin-post.php?action=avance_delete&id=' . $a->id), 'avance_delete_' . $a->id);
             $pill = $a->statut === 'Encaissée' ? 'ok' : ($a->statut === 'Annulée' ? 'sold' : 'cmd');
             $date = ($a->date_avance && $a->date_avance !== '0000-00-00') ? $a->date_avance : '—';
+            $cmd_lbl = '';
+            if ($a->commande_id && function_exists('commande_get')) { $cm = commande_get($a->commande_id); if ($cm) $cmd_lbl = $cm->numero; }
             echo '<tr>';
             echo '<td>' . esc_html($date) . '</td>';
+            echo '<td>' . esc_html(isset($a->type_paiement) ? $a->type_paiement : '') . '</td>';
             echo '<td><strong>' . esc_html(avance_client_label($a)) . '</strong></td>';
-            echo '<td>' . esc_html(avance_vehicle_label($a)) . '</td>';
+            echo '<td>' . esc_html($cmd_lbl) . '</td>';
             echo '<td><strong>' . esc_html(avance_money($a->montant)) . '</strong></td>';
             echo '<td>' . esc_html($a->mode_paiement) . '</td>';
-            echo '<td>' . esc_html($a->reference) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($a->statut) . '</span></td>';
             if ($can_edit) {
-                echo '<td><a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer cette avance ?\')" style="color:#b23b3b">Suppr.</a></td>';
+                echo '<td><a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer ce paiement ?\')" style="color:#b23b3b">Suppr.</a></td>';
             } else {
                 echo '<td style="color:#bbb">—</td>';
             }
@@ -298,7 +303,7 @@ function avance_page_edit() {
     iac_admin_style();
 
     echo '<div class="wrap iac-wrap">';
-    echo '<div class="iac-head"><h1>' . ($id ? 'Modifier une avance' : 'Enregistrer une avance') . '</h1>';
+    echo '<div class="iac-head"><h1>' . ($id ? 'Modifier un paiement' : 'Enregistrer un paiement') . '</h1>';
     echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=avances')) . '">← Retour à la liste</a></div>';
 
     echo '<form class="iac-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
@@ -316,17 +321,21 @@ function avance_page_edit() {
         }
     }
     echo '</select></div>';
-    echo '<div class="fld"><label>Commande associée (facultatif)</label><select name="commande_id">';
+    echo '<div class="fld"><label>Commande associée (facultatif)</label><select id="avance_commande" name="commande_id">';
     echo '<option value="0">— Aucune —</option>';
     if (function_exists('commandes_get_all')) {
         foreach (commandes_get_all() as $cmd) {
             $lbl = $cmd->numero;
             if ($cmd->client_id && function_exists('iac_get_client')) { $ccl = iac_get_client($cmd->client_id); if ($ccl) $lbl .= ' — ' . iac_client_name($ccl); }
-            echo '<option value="' . (int)$cmd->id . '" ' . selected($cur_commande, (int)$cmd->id, false) . '>' . esc_html($lbl) . '</option>';
+            $c_total = function_exists('commande_prix_net') ? commande_prix_net($cmd) : (float)$cmd->prix;
+            $c_paid  = function_exists('avances_sum_for_commande') ? avances_sum_for_commande($cmd->id) : 0;
+            $c_reste = function_exists('commande_reste') ? commande_reste($cmd) : max(0, $c_total - $c_paid);
+            echo '<option value="' . (int)$cmd->id . '" data-total="' . esc_attr($c_total) . '" data-paid="' . esc_attr($c_paid) . '" data-reste="' . esc_attr($c_reste) . '" ' . selected($cur_commande, (int)$cmd->id, false) . '>' . esc_html($lbl) . '</option>';
         }
     }
     echo '</select></div>';
     echo '</div>';
+    echo '<p id="avance_solde_info" style="margin:-6px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555;display:none"></p>';
 
     // Véhicule
     echo '<div class="row">';
@@ -340,10 +349,13 @@ function avance_page_edit() {
     echo '</select></div><div class="fld"></div>';
     echo '</div>';
 
-    // Montant + date
+    // Type + montant + date
     echo '<div class="row">';
-    echo '<div class="fld"><label>Montant (DA)</label><input type="number" step="0.01" min="0" name="montant" value="' . esc_attr($get('montant', '')) . '" required></div>';
-    echo '<div class="fld"><label>Date de l\'avance</label><input type="date" name="date_avance" value="' . esc_attr(($get('date_avance') && $get('date_avance') !== '0000-00-00') ? $get('date_avance') : '') . '"></div>';
+    echo '<div class="fld"><label>Type de paiement</label><select name="type_paiement">';
+    foreach (avance_types() as $t) echo '<option ' . selected($get('type_paiement', 'Avance'), $t, false) . '>' . esc_html($t) . '</option>';
+    echo '</select></div>';
+    echo '<div class="fld"><label>Montant (DA)</label><input type="number" step="0.01" min="0" id="avance_montant" name="montant" value="' . esc_attr($get('montant', '')) . '" required></div>';
+    echo '<div class="fld"><label>Date du paiement</label><input type="date" name="date_avance" value="' . esc_attr(($get('date_avance') && $get('date_avance') !== '0000-00-00') ? $get('date_avance') : '') . '"></div>';
     echo '</div>';
 
     // Mode + référence + statut
@@ -387,6 +399,25 @@ function avance_page_edit() {
     ?>
     <script>
     jQuery(function($){
+      // Reste à payer de la commande liée (calcul automatique)
+      function fmtDA(n){ return (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' DA'; }
+      function showSolde(){
+        var opt = $('#avance_commande').find('option:selected');
+        var info = $('#avance_solde_info');
+        if (!opt.length || opt.val() === '0' || opt.data('total') === undefined){ info.hide(); return; }
+        var total = parseFloat(opt.data('total')) || 0;
+        var paid  = parseFloat(opt.data('paid'))  || 0;
+        var reste = parseFloat(opt.data('reste')) || 0;
+        info.html('Commande — total : <strong>'+fmtDA(total)+'</strong> · déjà payé : <strong>'+fmtDA(paid)+'</strong> · <span style="color:#C05A00">reste : <strong>'+fmtDA(reste)+'</strong></span> &nbsp;·&nbsp; <a href="#" id="avance_fill_reste">Payer le solde</a>').show();
+      }
+      $('#avance_commande').on('change', showSolde);
+      $(document).on('click', '#avance_fill_reste', function(e){
+        e.preventDefault();
+        var reste = parseFloat($('#avance_commande').find('option:selected').data('reste')) || 0;
+        if (reste > 0) $('#avance_montant').val(reste.toFixed(2));
+      });
+      showSolde();
+
       var frame;
       $('#av_att_add').on('click', function(e){
         e.preventDefault();
