@@ -254,24 +254,34 @@ function avances_page_list() {
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th style="width:105px">Date</th><th style="width:110px">Type</th><th>Client</th><th>Commande</th><th>Montant</th><th>Mode</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th style="width:105px">Date</th><th style="width:105px">Type</th><th>Client</th><th>Commande</th><th>Montant</th><th>Reste à payer</th><th>Mode</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
 
     if (!$avances) {
-        echo '<tr><td colspan="8">Aucun paiement. <a href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">Enregistrez-en un</a>.</td></tr>';
+        echo '<tr><td colspan="9">Aucun paiement. <a href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">Enregistrez-en un</a>.</td></tr>';
     } else {
         foreach ($avances as $a) {
             $edit = admin_url('admin.php?page=avances&tab=edit&id=' . $a->id);
             $del  = wp_nonce_url(admin_url('admin-post.php?action=avance_delete&id=' . $a->id), 'avance_delete_' . $a->id);
             $pill = $a->statut === 'Encaissée' ? 'ok' : ($a->statut === 'Annulée' ? 'sold' : 'cmd');
             $date = ($a->date_avance && $a->date_avance !== '0000-00-00') ? $a->date_avance : '—';
-            $cmd_lbl = '';
-            if ($a->commande_id && function_exists('commande_get')) { $cm = commande_get($a->commande_id); if ($cm) $cmd_lbl = $cm->numero; }
+            $cmd_lbl = ''; $reste_cell = '<span style="color:#bbb">—</span>';
+            if ($a->commande_id && function_exists('commande_get')) {
+                $cm = commande_get($a->commande_id);
+                if ($cm) {
+                    $cmd_lbl = $cm->numero;
+                    if (function_exists('commande_reste')) {
+                        $r = commande_reste($cm);
+                        $reste_cell = '<strong style="color:' . ($r > 0 ? '#C05A00' : '#1a7a3c') . '">' . esc_html(avance_money($r)) . '</strong>';
+                    }
+                }
+            }
             echo '<tr>';
             echo '<td>' . esc_html($date) . '</td>';
             echo '<td>' . esc_html(isset($a->type_paiement) ? $a->type_paiement : '') . '</td>';
             echo '<td><strong>' . esc_html(avance_client_label($a)) . '</strong></td>';
             echo '<td>' . esc_html($cmd_lbl) . '</td>';
             echo '<td><strong>' . esc_html(avance_money($a->montant)) . '</strong></td>';
+            echo '<td>' . $reste_cell . '</td>';
             echo '<td>' . esc_html($a->mode_paiement) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($a->statut) . '</span></td>';
             if ($can_edit) {
