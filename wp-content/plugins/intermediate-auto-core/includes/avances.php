@@ -506,17 +506,8 @@ function avance_page_edit() {
     echo '</div>';
     echo '<p id="avance_solde_info" style="margin:-6px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555;display:none"></p>';
 
-    // Véhicule
-    echo '<div class="row">';
-    echo '<div class="fld"><label>Véhicule (facultatif)</label><select name="vehicule_id">';
-    echo '<option value="0">— Aucun —</option>';
-    if (function_exists('ia_get_vehicles')) {
-        foreach (ia_get_vehicles(array('orderby' => 'marque', 'order' => 'ASC')) as $vv) {
-            echo '<option value="' . (int)$vv->id . '" ' . selected((int)$get('vehicule_id', 0), (int)$vv->id, false) . '>' . esc_html(ia_vehicle_title($vv)) . '</option>';
-        }
-    }
-    echo '</select></div><div class="fld"></div>';
-    echo '</div>';
+    // Véhicule : déduit de la commande → champ masqué (valeur existante conservée)
+    echo '<input type="hidden" name="vehicule_id" value="' . esc_attr((int)$get('vehicule_id', 0)) . '">';
 
     // Type + montant + date
     echo '<div class="row">';
