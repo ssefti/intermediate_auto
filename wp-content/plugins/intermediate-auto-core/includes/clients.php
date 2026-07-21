@@ -517,15 +517,9 @@ function iac_page_client_edit() {
     echo '<div class="fld"><label>Statut</label><select name="statut_client">';
     foreach (iac_client_statuts() as $s) echo '<option ' . selected($get('statut_client', 'Prospect'), $s, false) . '>' . esc_html($s) . '</option>';
     echo '</select></div>';
-    echo '<div class="fld"><label>Véhicule concerné</label><select name="vehicule_id">';
-    echo '<option value="0">— Aucun —</option>';
-    if (function_exists('ia_get_vehicles')) {
-        foreach (ia_get_vehicles(array('orderby' => 'marque', 'order' => 'ASC')) as $vv) {
-            echo '<option value="' . (int)$vv->id . '" ' . selected((int)$get('vehicule_id', 0), (int)$vv->id, false) . '>' . esc_html(ia_vehicle_title($vv)) . '</option>';
-        }
-    }
-    echo '</select></div>';
     echo '</div>';
+    // Véhicule concerné : champ masqué (inutile ici), valeur existante conservée
+    echo '<input type="hidden" name="vehicule_id" value="' . esc_attr((int)$get('vehicule_id', 0)) . '">';
     echo '<div class="fld"><label>Notes</label><textarea name="notes" rows="3">' . esc_textarea($get('notes')) . '</textarea></div>';
 
     /* ---- Pièces jointes ---- */
