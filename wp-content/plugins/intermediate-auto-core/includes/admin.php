@@ -18,6 +18,7 @@ function iac_admin_menu() {
     if (acces_can_view('clients'))   add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'read', 'ia-clients', 'iac_page_clients_section');
     if (acces_can_view('avances'))   add_submenu_page('intermediate-auto', 'Gestion des paiements', 'Gestion des paiements', 'read', 'avances', 'avances_page_section');
     if (acces_can_view('commandes')) add_submenu_page('intermediate-auto', 'Gestion des commandes', 'Gestion des commandes', 'read', 'commandes', 'commandes_page_section');
+    if (acces_can_view('devis'))     add_submenu_page('intermediate-auto', 'Devis (Proforma)', 'Devis (Proforma)', 'read', 'devis', 'devis_page_section');
 }
 
 /* ---------- Barre d'onglets d'une section ---------- */
@@ -31,6 +32,9 @@ function iac_section_tabs($section, $current) {
     } elseif ($section === 'commandes') {
         $base = admin_url('admin.php?page=commandes');
         $tabs = array('list' => 'Commandes', 'edit' => 'Nouvelle commande');
+    } elseif ($section === 'devis') {
+        $base = admin_url('admin.php?page=devis');
+        $tabs = array('list' => 'Devis', 'edit' => 'Nouveau devis');
     } else {
         $base = admin_url('admin.php?page=ia-clients');
         $tabs = array('list' => 'Clients', 'edit' => 'Ajouter');

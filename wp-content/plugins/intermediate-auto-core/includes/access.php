@@ -18,6 +18,8 @@ function acces_options() {
         'avances_view'   => 'Affichage des paiements',
         'commandes_edit' => 'Création / Modification des commandes',
         'commandes_view' => 'Affichage des commandes',
+        'devis_edit'     => 'Création / Modification des devis (Proforma)',
+        'devis_view'     => 'Affichage des devis (Proforma)',
     );
 }
 
@@ -115,16 +117,17 @@ function acces_user_validate($errors, $update, $user) {
     }
 }
 
-/* ---- Amorçage : les administrateurs existants reçoivent tous les accès (une seule fois) ---- */
+/* ---- Amorçage : on ajoute les accès manquants aux administrateurs.
+ *      Version à incrémenter quand on ajoute de nouveaux accès (union, jamais de retrait). ---- */
 add_action('admin_init', 'acces_bootstrap');
 function acces_bootstrap() {
-    if (get_option('acces_bootstrap_v1')) return;
-    $admins = get_users(array('role' => 'administrator', 'fields' => array('ID')));
-    foreach ($admins as $a) {
+    $ver = '2';
+    if (get_option('acces_bootstrap') === $ver) return;
+    $all = array_keys(acces_options());
+    foreach (get_users(array('role' => 'administrator', 'fields' => array('ID'))) as $a) {
         $cur = get_user_meta($a->ID, 'acces', true);
-        if (!is_array($cur) || empty($cur)) {
-            update_user_meta($a->ID, 'acces', array_keys(acces_options()));
-        }
+        $cur = is_array($cur) ? $cur : array();
+        update_user_meta($a->ID, 'acces', array_values(array_unique(array_merge($cur, $all))));
     }
-    update_option('acces_bootstrap_v1', 1);
+    update_option('acces_bootstrap', $ver);
 }
