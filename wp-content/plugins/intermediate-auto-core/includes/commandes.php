@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('COMMANDES_VER', '1.1');
+define('COMMANDES_VER', '1.2');
 
 /** Coordonnées légales de la société (modifiables ici si besoin) */
 if (!defined('SOCIETE_NOM'))     define('SOCIETE_NOM', 'Intermediate Auto');
@@ -53,6 +53,7 @@ function commandes_maybe_install() {
         statut VARCHAR(30) NOT NULL DEFAULT 'En cours',
         conditions TEXT NULL,
         notes TEXT NULL,
+        created_by BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         created_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         updated_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         PRIMARY KEY (id),
@@ -151,6 +152,7 @@ function commande_save() {
         $wpdb->update(commandes_table(), $data, array('id' => $id));
     } else {
         $data['created_at'] = current_time('mysql');
+        $data['created_by'] = get_current_user_id();
         $wpdb->insert(commandes_table(), $data);
         $id = (int)$wpdb->insert_id;
         // Numéro séquentiel BC-AAAA-0001
@@ -228,10 +230,10 @@ function commandes_page_list() {
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th style="width:130px">N°</th><th>Client</th><th>Véhicule</th><th>Prix</th><th>Reste</th><th>Statut</th><th style="width:230px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th style="width:130px">N°</th><th>Client</th><th>Véhicule</th><th>Prix</th><th>Reste</th><th>Statut</th><th>Créé par</th><th style="width:230px">Actions</th></tr></thead><tbody>';
 
     if (!$commandes) {
-        echo '<tr><td colspan="7">Aucune commande. <a href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit')) . '">Créez-en une</a>.</td></tr>';
+        echo '<tr><td colspan="8">Aucune commande. <a href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit')) . '">Créez-en une</a>.</td></tr>';
     } else {
         foreach ($commandes as $c) {
             $bon  = admin_url('admin.php?page=commandes&view=' . $c->id);
@@ -247,6 +249,7 @@ function commandes_page_list() {
             echo '<td>' . esc_html(commande_money($c->prix)) . '</td>';
             echo '<td>' . esc_html(commande_money(commande_reste($c))) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($c->statut) . '</span></td>';
+            echo '<td style="font-size:12px;color:#555">' . esc_html(meta_created_text($c->created_by ?? 0, $c->created_at ?? '')) . '</td>';
             echo '<td><a href="' . esc_url($bon) . '">📄 Bon de commande</a>';
             if ($can_edit) echo ' | <a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer cette commande ?\')" style="color:#b23b3b">Suppr.</a>';
             echo '</td>';
@@ -513,7 +516,7 @@ function commande_page_bon() {
             <div><div class="line">Signature et cachet — <?php echo esc_html(SOCIETE_NOM); ?></div></div>
         </div>
 
-        <div class="bon-foot"><?php echo esc_html(SOCIETE_NOM); ?> · Bon de commande <?php echo esc_html($c->numero); ?></div>
+        <div class="bon-foot">Établi par <?php echo esc_html(acces_user_name($c->created_by ?? 0)); ?> · <?php echo esc_html(SOCIETE_NOM); ?> · Bon de commande <?php echo esc_html($c->numero); ?></div>
     </div>
 
     <?php

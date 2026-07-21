@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('AVANCES_VER', '1.2');
+define('AVANCES_VER', '1.3');
 
 /** Nom complet de la table des avances */
 function avances_table() {
@@ -93,6 +93,7 @@ function avances_maybe_install() {
         statut VARCHAR(30) NOT NULL DEFAULT 'Encaissée',
         notes TEXT NULL,
         attachments TEXT NULL,
+        created_by BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         created_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         updated_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         PRIMARY KEY (id),
@@ -220,6 +221,7 @@ function avance_save() {
         $msg = 'aupdated';
     } else {
         $data['created_at'] = current_time('mysql');
+        $data['created_by'] = get_current_user_id();
         $wpdb->insert(avances_table(), $data);
         $id  = (int)$wpdb->insert_id;
         $msg = 'acreated';
@@ -360,7 +362,7 @@ function avance_page_recu() {
             <div><div class="line">Le client</div></div>
             <div><div class="line">Pour <?php echo esc_html($soc); ?> — cachet et signature</div></div>
         </div>
-        <div class="recu-foot"><?php echo esc_html($soc); ?> · Reçu <?php echo esc_html($num); ?></div>
+        <div class="recu-foot">Établi par <?php echo esc_html(acces_user_name($a->created_by ?? 0)); ?><?php if ($datestr) echo ' le ' . esc_html($datestr); ?> · <?php echo esc_html($soc); ?> · Reçu <?php echo esc_html($num); ?></div>
     </div>
     <?php
 }
@@ -412,7 +414,7 @@ function avances_page_list() {
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th style="width:105px">Date</th><th style="width:105px">Type</th><th>Client</th><th>Commande</th><th>Montant</th><th>Reste à payer</th><th>Mode</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th style="width:105px">Date</th><th style="width:105px">Type</th><th>Client</th><th>Commande</th><th>Montant</th><th>Reste à payer</th><th>Créé par</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
 
     if (!$avances) {
         echo '<tr><td colspan="9">Aucun paiement. <a href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">Enregistrez-en un</a>.</td></tr>';
@@ -440,7 +442,7 @@ function avances_page_list() {
             echo '<td>' . esc_html($cmd_lbl) . '</td>';
             echo '<td><strong>' . esc_html(avance_money($a->montant)) . '</strong></td>';
             echo '<td>' . $reste_cell . '</td>';
-            echo '<td>' . esc_html($a->mode_paiement) . '</td>';
+            echo '<td style="font-size:12px;color:#555">' . esc_html(meta_created_text($a->created_by ?? 0, $a->created_at ?? '')) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($a->statut) . '</span></td>';
             $recu = admin_url('admin.php?page=avances&recu=' . $a->id);
             echo '<td><a href="' . esc_url($recu) . '">🧾 Reçu</a>';

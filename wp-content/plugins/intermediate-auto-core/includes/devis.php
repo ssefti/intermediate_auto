@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('DEVIS_VER', '1.0');
+define('DEVIS_VER', '1.1');
 
 /** Mention légale obligatoire sur le document Proforma */
 function devis_mention() {
@@ -56,6 +56,7 @@ function devis_maybe_install() {
         conditions TEXT NULL,
         notes TEXT NULL,
         commande_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
+        created_by BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         created_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         updated_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         PRIMARY KEY (id),
@@ -128,6 +129,7 @@ function devis_save() {
         $wpdb->update(devis_table(), $data, array('id' => $id));
     } else {
         $data['created_at'] = current_time('mysql');
+        $data['created_by'] = get_current_user_id();
         $wpdb->insert(devis_table(), $data);
         $id = (int)$wpdb->insert_id;
         $year = $date ? substr($date, 0, 4) : current_time('Y');
@@ -177,6 +179,7 @@ function devis_convert() {
         'statut'          => 'En cours',
         'conditions'      => $d->conditions,
         'notes'           => $d->notes,
+        'created_by'      => get_current_user_id(),
         'created_at'      => current_time('mysql'),
         'updated_at'      => current_time('mysql'),
     ));
@@ -233,10 +236,10 @@ function devis_page_list() {
     echo '</p>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th style="width:130px">N°</th><th>Client</th><th>Véhicule</th><th>Montant estimé</th><th>Statut</th><th style="width:280px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th style="width:130px">N°</th><th>Client</th><th>Véhicule</th><th>Montant estimé</th><th>Statut</th><th>Créé par</th><th style="width:280px">Actions</th></tr></thead><tbody>';
 
     if (!$devis) {
-        echo '<tr><td colspan="6">Aucun devis. <a href="' . esc_url(admin_url('admin.php?page=devis&tab=edit')) . '">Créez-en un</a>.</td></tr>';
+        echo '<tr><td colspan="7">Aucun devis. <a href="' . esc_url(admin_url('admin.php?page=devis&tab=edit')) . '">Créez-en un</a>.</td></tr>';
     } else {
         foreach ($devis as $d) {
             $pro  = admin_url('admin.php?page=devis&proforma=' . $d->id);
@@ -252,6 +255,7 @@ function devis_page_list() {
             echo '<td>' . esc_html($veh) . '</td>';
             echo '<td>' . esc_html(devis_money(devis_prix_net($d))) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($d->statut) . '</span></td>';
+            echo '<td style="font-size:12px;color:#555">' . esc_html(meta_created_text($d->created_by ?? 0, $d->created_at ?? '')) . '</td>';
             echo '<td><a href="' . esc_url($pro) . '">📄 Proforma</a>';
             if ($can_edit) {
                 echo ' | <a href="' . esc_url($edit) . '">Modifier</a>';
@@ -469,7 +473,7 @@ function devis_page_proforma() {
         <div style="font-size:13px;color:#444"><strong>Conditions :</strong><br><?php echo nl2br(esc_html($d->conditions)); ?></div>
         <?php endif; ?>
 
-        <div class="pro-foot"><?php echo esc_html($soc); ?> · Facture Proforma <?php echo esc_html($d->numero); ?> · Document non contractuel</div>
+        <div class="pro-foot">Établi par <?php echo esc_html(acces_user_name($d->created_by ?? 0)); ?> · <?php echo esc_html($soc); ?> · Facture Proforma <?php echo esc_html($d->numero); ?> · Document non contractuel</div>
     </div>
     <?php
 }

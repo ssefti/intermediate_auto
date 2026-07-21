@@ -9,7 +9,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('IAC_VER', '1.4');
+define('IAC_VER', '1.5');
 define('IAC_DIR', plugin_dir_path(__FILE__));
 define('IAC_URL', plugin_dir_url(__FILE__));
 
@@ -148,6 +148,7 @@ function iac_columns_ext() {
         'old_post_id'   => "BIGINT(20) UNSIGNED NOT NULL DEFAULT 0",
         'meta'          => "LONGTEXT NULL",
         'carrosserie'   => "VARCHAR(60) NOT NULL DEFAULT ''",
+        'created_by'    => "BIGINT(20) UNSIGNED NOT NULL DEFAULT 0",
     );
 }
 

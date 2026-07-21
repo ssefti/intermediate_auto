@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('IAC_CLIENTS_VER', '1.0');
+define('IAC_CLIENTS_VER', '1.1');
 
 /** Nom complet de la table clients */
 function iac_clients_table() {
@@ -65,6 +65,7 @@ function iac_clients_maybe_install() {
         notes TEXT NULL,
         attachments TEXT NULL,
         active TINYINT(1) NOT NULL DEFAULT 1,
+        created_by BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         created_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         updated_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         PRIMARY KEY (id),
@@ -186,6 +187,7 @@ function iac_save_client() {
     } else {
         $data['active']     = 1;
         $data['created_at'] = current_time('mysql');
+        $data['created_by'] = get_current_user_id();
         $wpdb->insert(iac_clients_table(), $data);
         $msg = 'ccreated';
     }
@@ -279,7 +281,7 @@ function iac_page_clients_list() {
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th>Client</th><th>Type</th><th>Téléphone</th><th>Wilaya</th><th>Véhicule</th><th>Statut</th><th style="width:90px">État</th><th style="width:200px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th>Client</th><th>Type</th><th>Téléphone</th><th>Wilaya</th><th>Créé par</th><th>Statut</th><th style="width:90px">État</th><th style="width:200px">Actions</th></tr></thead><tbody>';
 
     if (!$clients) {
         echo '<tr><td colspan="8">Aucun client. <a href="' . esc_url(admin_url('admin.php?page=ia-clients&tab=edit')) . '">Ajoutez-en un</a>.</td></tr>';
@@ -289,18 +291,13 @@ function iac_page_clients_list() {
             $edit   = admin_url('admin.php?page=ia-clients&tab=edit&id=' . $c->id);
             $toggle = wp_nonce_url(admin_url('admin-post.php?action=iac_toggle_client&id=' . $c->id), 'iac_toggle_' . $c->id);
             $pill   = $c->statut_client === 'Acheteur' ? 'ok' : ($c->statut_client === 'Ancien client' ? 'sold' : 'cmd');
-            $veh    = '';
-            if ($c->vehicule_id && function_exists('ia_get_vehicle')) {
-                $vv = ia_get_vehicle($c->vehicule_id);
-                if ($vv) $veh = ia_vehicle_title($vv);
-            }
             $rowstyle = $c->active ? '' : ' style="opacity:.5"';
             echo '<tr' . $rowstyle . '>';
             echo '<td><strong><a href="' . esc_url($view) . '">' . esc_html(iac_client_name($c)) . '</a></strong></td>';
             echo '<td>' . ($c->type === 'entreprise' ? '🏢 Entreprise' : '👤 Particulier') . '</td>';
             echo '<td>' . esc_html($c->telephone) . '</td>';
             echo '<td>' . esc_html($c->wilaya) . '</td>';
-            echo '<td>' . esc_html($veh) . '</td>';
+            echo '<td style="font-size:12px;color:#555">' . esc_html(meta_created_text($c->created_by ?? 0, $c->created_at ?? '')) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($c->statut_client) . '</span></td>';
             echo '<td>' . ($c->active ? '<span class="iac-pill ok">Actif</span>' : '<span class="iac-pill sold">Inactif</span>') . '</td>';
             echo '<td><a href="' . esc_url($view) . '">Voir</a>';
@@ -395,6 +392,7 @@ function iac_page_client_view() {
         if ($vv) $veh = ia_vehicle_title($vv);
     }
     $row('Véhicule concerné', $veh);
+    $row('Créé par', acces_user_name($c->created_by ?? 0));
     $row('Créé le', $c->created_at !== '1000-01-01 00:00:00' ? $c->created_at : '');
     if ($c->notes) {
         echo '<div style="padding-top:10px"><span style="color:#777">Notes</span><p style="margin-top:6px">' . nl2br(esc_html($c->notes)) . '</p></div>';

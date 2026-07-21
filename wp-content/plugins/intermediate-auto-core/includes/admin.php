@@ -241,6 +241,7 @@ function iac_save_vehicle() {
         $msg = 'updated';
     } else {
         $data['created_at'] = current_time('mysql');
+        $data['created_by'] = get_current_user_id();
         $wpdb->insert(iac_table(), $data);
         $msg = 'created';
     }
@@ -374,10 +375,10 @@ function iac_page_list() {
     }
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th style="width:80px">Photo</th><th>Véhicule</th><th>Boîte</th><th>Couleur</th><th>Prix</th><th>Douane</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th style="width:80px">Photo</th><th>Véhicule</th><th>Boîte</th><th>Couleur</th><th>Prix</th><th>Douane</th><th>Statut</th><th>Créé par</th><th style="width:140px">Actions</th></tr></thead><tbody>';
 
     if (!$vehicles) {
-        echo '<tr><td colspan="8">Aucun véhicule. <a href="' . esc_url(admin_url('admin.php?page=vehicules&tab=edit')) . '">Ajoutez-en un</a>.</td></tr>';
+        echo '<tr><td colspan="9">Aucun véhicule. <a href="' . esc_url(admin_url('admin.php?page=vehicules&tab=edit')) . '">Ajoutez-en un</a>.</td></tr>';
     } else {
         foreach ($vehicles as $v) {
             $edit = admin_url('admin.php?page=vehicules&tab=edit&id=' . $v->id);
@@ -391,6 +392,7 @@ function iac_page_list() {
             echo '<td><strong>' . (int)$v->prix . '</strong> <span style="color:#999">×10⁴ DA</span></td>';
             echo '<td>' . esc_html(ia_douane_label($v)) . '</td>';
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($v->statut) . '</span></td>';
+            echo '<td style="font-size:12px;color:#555">' . esc_html(meta_created_text($v->created_by ?? 0, $v->created_at ?? '')) . '</td>';
             echo '<td><a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer ce véhicule ?\')" style="color:#b23b3b">Suppr.</a></td>';
             echo '</tr>';
         }

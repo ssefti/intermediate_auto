@@ -35,6 +35,23 @@ function acces_can_edit($module, $uid = null) { return acces_has($module . '_edi
 function acces_can_view($module, $uid = null) { return acces_has($module . '_view', $uid) || acces_has($module . '_edit', $uid); }
 function acces_any($uid = null)               { return (bool) acces_user($uid); }
 
+/** Nom d'affichage d'un utilisateur (pour « Créé par ») */
+function acces_user_name($uid) {
+    $uid = (int)$uid;
+    if (!$uid) return '—';
+    $u = get_userdata($uid);
+    return $u ? $u->display_name : ('#' . $uid);
+}
+
+/** Libellé « Nom · JJ/MM/AAAA » à partir de created_by / created_at */
+function meta_created_text($created_by, $created_at = '') {
+    $name = acces_user_name($created_by);
+    if ($created_at && !in_array($created_at, array('1000-01-01 00:00:00', '0000-00-00 00:00:00'), true)) {
+        return $name . ' · ' . date_i18n('j/m/Y', strtotime($created_at));
+    }
+    return $name;
+}
+
 /** Bloque l'accès (403) si la condition n'est pas remplie */
 function acces_guard($ok) {
     if (!$ok) wp_die('Accès refusé : vous n’avez pas la permission requise pour cette page.', 'Accès refusé', array('response' => 403));
