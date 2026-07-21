@@ -16,9 +16,9 @@ function iac_admin_menu() {
     if ($can_dash) add_submenu_page('intermediate-auto', 'Tableau de bord', 'Tableau de bord', 'read', 'intermediate-auto', 'dashboard_page');
     if (acces_can_edit('vehicules')) add_submenu_page('intermediate-auto', 'Voitures', 'Voitures', 'read', 'vehicules', 'iac_page_vehicles_section');
     if (acces_can_view('clients'))   add_submenu_page('intermediate-auto', 'Clients', 'Clients', 'read', 'ia-clients', 'iac_page_clients_section');
-    if (acces_can_view('avances'))   add_submenu_page('intermediate-auto', 'Gestion des paiements', 'Gestion des paiements', 'read', 'avances', 'avances_page_section');
+    if (acces_can_view('devis'))     add_submenu_page('intermediate-auto', 'Gestion des devis', 'Gestion des devis', 'read', 'devis', 'devis_page_section');
     if (acces_can_view('commandes')) add_submenu_page('intermediate-auto', 'Gestion des commandes', 'Gestion des commandes', 'read', 'commandes', 'commandes_page_section');
-    if (acces_can_view('devis'))     add_submenu_page('intermediate-auto', 'Devis (Proforma)', 'Devis (Proforma)', 'read', 'devis', 'devis_page_section');
+    if (acces_can_view('avances'))   add_submenu_page('intermediate-auto', 'Gestion des paiements', 'Gestion des paiements', 'read', 'avances', 'avances_page_section');
 }
 
 /* ---------- Barre d'onglets d'une section ---------- */
