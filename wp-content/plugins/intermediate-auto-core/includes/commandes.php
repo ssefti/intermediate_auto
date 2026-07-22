@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('COMMANDES_VER', '1.2');
+define('COMMANDES_VER', '1.3');
 
 /** Coordonnées légales de la société (modifiables ici si besoin) */
 if (!defined('SOCIETE_NOM'))     define('SOCIETE_NOM', 'Intermediate Auto');
@@ -53,6 +53,7 @@ function commandes_maybe_install() {
         statut VARCHAR(30) NOT NULL DEFAULT 'En cours',
         conditions TEXT NULL,
         notes TEXT NULL,
+        avance_paiement_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         created_by BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         created_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
         updated_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
@@ -115,6 +116,47 @@ function commande_reste($c) {
     return max(0, commande_prix_net($c) - commande_avance_effective($c));
 }
 
+/**
+ * Synchronise l'avance saisie sur la commande avec un paiement lié
+ * (type « Avance », encaissé) dans le module Paiements — sans doublon.
+ */
+function commande_sync_avance_paiement($cid, $avance, $mode) {
+    if (!function_exists('avances_table')) return;
+    global $wpdb;
+    $c = commande_get($cid);
+    if (!$c) return;
+    $pid    = isset($c->avance_paiement_id) ? (int)$c->avance_paiement_id : 0;
+    $avance = round((float)$avance, 2);
+    $at     = avances_table();
+
+    if ($avance > 0) {
+        $pdata = array(
+            'client_id'     => (int)$c->client_id,
+            'vehicule_id'   => (int)$c->vehicule_id,
+            'commande_id'   => (int)$cid,
+            'type_paiement' => 'Avance',
+            'montant'       => $avance,
+            'date_avance'   => ($c->date_commande && $c->date_commande !== '0000-00-00') ? $c->date_commande : current_time('Y-m-d'),
+            'mode_paiement' => $mode,
+            'statut'        => 'Encaissée',
+            'notes'         => 'Avance enregistrée automatiquement avec la commande ' . $c->numero,
+            'updated_at'    => current_time('mysql'),
+        );
+        if ($pid > 0 && $wpdb->get_var($wpdb->prepare("SELECT id FROM {$at} WHERE id = %d", $pid))) {
+            $wpdb->update($at, $pdata, array('id' => $pid));
+        } else {
+            $pdata['created_at'] = current_time('mysql');
+            $pdata['created_by'] = get_current_user_id();
+            $wpdb->insert($at, $pdata);
+            $wpdb->update(commandes_table(), array('avance_paiement_id' => (int)$wpdb->insert_id), array('id' => $cid));
+        }
+    } elseif ($pid > 0) {
+        // L'avance a été mise à 0 → on retire le paiement auto-créé
+        $wpdb->delete($at, array('id' => $pid));
+        $wpdb->update(commandes_table(), array('avance_paiement_id' => 0), array('id' => $cid));
+    }
+}
+
 /* ============================================================
  *  ENREGISTREMENT (création / édition)
  * ============================================================ */
@@ -160,6 +202,9 @@ function commande_save() {
         $numero = 'BC-' . $year . '-' . str_pad($id, 4, '0', STR_PAD_LEFT);
         $wpdb->update(commandes_table(), array('numero' => $numero), array('id' => $id));
     }
+    // Avance saisie → paiement lié (création / mise à jour / suppression)
+    commande_sync_avance_paiement($id, $avance, $data['mode_paiement']);
+
     wp_safe_redirect(admin_url('admin.php?page=commandes&view=' . $id . '&iac_msg=csaved'));
     exit;
 }
@@ -172,6 +217,11 @@ function commande_delete() {
     check_admin_referer('commande_delete_' . $id);
     if ($id > 0) {
         global $wpdb;
+        // Retire le paiement d'avance auto-créé lié à cette commande
+        $c = commande_get($id);
+        if ($c && isset($c->avance_paiement_id) && (int)$c->avance_paiement_id > 0 && function_exists('avances_table')) {
+            $wpdb->delete(avances_table(), array('id' => (int)$c->avance_paiement_id));
+        }
         $wpdb->delete(commandes_table(), array('id' => $id));
     }
     wp_safe_redirect(admin_url('admin.php?page=commandes&iac_msg=cdeleted'));
@@ -308,7 +358,7 @@ function commande_page_edit() {
     echo '<div class="row">';
     echo '<div class="fld"><label>Prix total (DA)</label><input type="number" step="0.01" min="0" id="commande_prix" name="prix" value="' . esc_attr($get('prix', '')) . '" required></div>';
     echo '<div class="fld"><label>Remise (%)</label><input type="number" step="0.01" min="0" max="100" id="commande_remise" name="remise" value="' . esc_attr($get('remise', '0')) . '"></div>';
-    echo '<div class="fld"><label>Avance versée (DA) <span style="font-weight:400;color:#999">— si aucune avance liée</span></label><input type="number" step="0.01" min="0" name="avance" value="' . esc_attr($get('avance', '0')) . '"></div>';
+    echo '<div class="fld"><label>Avance versée (DA) <span style="font-weight:400;color:#999">— enregistrée comme paiement</span></label><input type="number" step="0.01" min="0" name="avance" value="' . esc_attr($get('avance', '0')) . '"></div>';
     echo '</div>';
     echo '<p id="commande_net_line" style="margin:-6px 0 16px;color:#555">Prix après remise : <strong id="commande_net">—</strong></p>';
 
@@ -319,7 +369,7 @@ function commande_page_edit() {
         echo '<p style="margin:-4px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555">';
         echo 'Paiements encaissés liés à cette commande : <strong>' . esc_html(commande_money($linkedsum)) . '</strong>';
         echo ' &nbsp;·&nbsp; <a href="' . esc_url($addurl) . '">+ Ajouter un paiement pour cette commande</a>';
-        echo '<br><span style="font-size:12px;color:#888">Si des paiements sont liés, ils remplacent automatiquement le champ « Avance versée » ci-dessus dans le bon de commande.</span></p>';
+        echo '<br><span style="font-size:12px;color:#888">L\'avance saisie ci-dessus est automatiquement enregistrée comme un paiement (type « Avance »). Les versements suivants (solde…) s\'ajoutent via « Ajouter un paiement ».</span></p>';
     }
 
     // Mode + délai + statut
