@@ -444,6 +444,20 @@ function iac_page_edit() {
     echo '<input type="hidden" name="action" value="iac_save_vehicle">';
     echo '<input type="hidden" name="id" value="' . esc_attr($id) . '">';
 
+    // Visibilité sur le site + informations fiscales (si non affiché) — en premier
+    $is_visible = ($v === null) ? 1 : (int)$get('visible', 1);
+    echo '<div class="row"><div class="fld"><label>Visibilité</label>';
+    echo '<label style="font-weight:400;display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" id="ia_visible" name="visible" value="1" ' . checked($is_visible, 1, false) . '> 🌐 Afficher ce véhicule sur le site</label>';
+    echo '<span style="color:#777;font-size:12px">Décochez pour un véhicule privé, non publié dans le catalogue.</span></div><div class="fld"></div></div>';
+
+    echo '<div class="iac-fiscal" style="' . ($is_visible ? 'display:none' : '') . '">';
+    echo '<h2 style="font-size:16px;margin:8px 0 6px;border-top:1px solid #eee;padding-top:16px">Informations fiscales <span style="font-weight:400;color:#999">(véhicule non affiché)</span></h2>';
+    echo '<div class="row">';
+    echo '<div class="fld"><label>NIF</label><input type="text" name="nif" value="' . esc_attr($get('nif')) . '"></div>';
+    echo '<div class="fld"><label>Article d\'imposition</label><input type="text" name="article_imposition" value="' . esc_attr($get('article_imposition')) . '"></div>';
+    echo '<div class="fld"><label>Nom d\'imposition</label><input type="text" name="nom_imposition" value="' . esc_attr($get('nom_imposition')) . '"></div>';
+    echo '</div></div>';
+
     // Marque + Modèle
     echo '<div class="row">';
     echo '<div class="fld"><label>Marque</label><select name="marque">';
@@ -486,20 +500,6 @@ function iac_page_edit() {
     foreach (iac_statuts() as $s) echo '<option ' . selected($get('statut','Disponible'), $s, false) . '>' . esc_html($s) . '</option>';
     echo '</select></div>';
     echo '<div class="fld"><label>Mise en avant</label><label style="font-weight:400;display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" name="featured" value="1" ' . checked((int)$get('featured',0), 1, false) . '> ⭐ Mettre ce véhicule en vedette sur l\'accueil</label></div></div>';
-
-    // Visibilité sur le site + informations fiscales (si non affiché)
-    $is_visible = ($v === null) ? 1 : (int)$get('visible', 1);
-    echo '<div class="row"><div class="fld"><label>Visibilité</label>';
-    echo '<label style="font-weight:400;display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" id="ia_visible" name="visible" value="1" ' . checked($is_visible, 1, false) . '> 🌐 Afficher ce véhicule sur le site</label>';
-    echo '<span style="color:#777;font-size:12px">Décochez pour un véhicule privé, non publié dans le catalogue.</span></div><div class="fld"></div></div>';
-
-    echo '<div class="iac-fiscal" style="' . ($is_visible ? 'display:none' : '') . '">';
-    echo '<h2 style="font-size:16px;margin:8px 0 6px;border-top:1px solid #eee;padding-top:16px">Informations fiscales <span style="font-weight:400;color:#999">(véhicule non affiché)</span></h2>';
-    echo '<div class="row">';
-    echo '<div class="fld"><label>NIF</label><input type="text" name="nif" value="' . esc_attr($get('nif')) . '"></div>';
-    echo '<div class="fld"><label>Article d\'imposition</label><input type="text" name="article_imposition" value="' . esc_attr($get('article_imposition')) . '"></div>';
-    echo '<div class="fld"><label>Nom d\'imposition</label><input type="text" name="nom_imposition" value="' . esc_attr($get('nom_imposition')) . '"></div>';
-    echo '</div></div>';
 
     // Slogan + frais de douane (texte)
     echo '<div class="row">';
