@@ -12,6 +12,7 @@ function acces_options() {
     return array(
         'dashboard_view' => 'Affichage du sous-menu Tableau de bord',
         'vehicules_edit' => 'Création / Modification de véhicules',
+        'vehicules_prix' => 'Modification du prix du véhicule',
         'clients_edit'   => 'Création / Modification des clients',
         'clients_view'   => 'Affichage des clients',
         'avances_edit'   => 'Création / Modification des paiements',
@@ -138,7 +139,7 @@ function acces_user_validate($errors, $update, $user) {
  *      Version à incrémenter quand on ajoute de nouveaux accès (union, jamais de retrait). ---- */
 add_action('admin_init', 'acces_bootstrap');
 function acces_bootstrap() {
-    $ver = '2';
+    $ver = '3';
     if (get_option('acces_bootstrap') === $ver) return;
     $all = array_keys(acces_options());
     foreach (get_users(array('role' => 'administrator', 'fields' => array('ID'))) as $a) {

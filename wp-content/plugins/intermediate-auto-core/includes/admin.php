@@ -240,6 +240,11 @@ function iac_save_vehicle() {
         'transmission_txt' => sanitize_text_field($_POST['transmission_txt'] ?? ''),
     ));
 
+    // Prix : modifiable uniquement avec l'accès dédié (on ignore un prix posté sans autorisation)
+    if (function_exists('acces_has') && !acces_has('vehicules_prix')) {
+        $data['prix'] = ($id > 0 && ($ev = ia_get_vehicle($id))) ? (int)$ev->prix : 0;
+    }
+
     if ($id > 0) {
         $wpdb->update(iac_table(), $data, array('id' => $id));
         $msg = 'updated';
@@ -511,7 +516,10 @@ function iac_page_edit() {
 
     // Prix + douane min/max + statut
     echo '<div class="row">';
-    echo '<div class="fld"><label>Prix (×10 000 DA)</label><input type="number" name="prix" value="' . esc_attr($get('prix',0)) . '" min="0"></div>';
+    $can_prix = !function_exists('acces_has') || acces_has('vehicules_prix');
+    echo '<div class="fld"><label>Prix (×10 000 DA)</label><input type="number" name="prix" value="' . esc_attr($get('prix',0)) . '" min="0" ' . ($can_prix ? '' : 'disabled') . '>';
+    if (!$can_prix) echo '<span style="color:#777;font-size:12px">Vous n\'avez pas l\'autorisation de modifier le prix.</span>';
+    echo '</div>';
     echo '<div class="fld"><label>Douane min (M)</label><input type="number" name="douane_min" value="' . esc_attr($get('douane_min',0)) . '" min="0"></div>';
     echo '<div class="fld"><label>Douane max (M)</label><input type="number" name="douane_max" value="' . esc_attr($get('douane_max',0)) . '" min="0"></div>';
     echo '</div>';
