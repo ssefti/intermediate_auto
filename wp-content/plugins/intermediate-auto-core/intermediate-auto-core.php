@@ -9,7 +9,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('IAC_VER', '1.5');
+define('IAC_VER', '1.6');
 define('IAC_DIR', plugin_dir_path(__FILE__));
 define('IAC_URL', plugin_dir_url(__FILE__));
 
@@ -51,12 +51,12 @@ function iac_marques() {
 /** Marques réellement présentes dans le catalogue (pour les filtres) */
 function ia_marques_in_use() {
     global $wpdb;
-    return $wpdb->get_col("SELECT DISTINCT marque FROM " . iac_table() . " WHERE marque<>'' ORDER BY marque");
+    return $wpdb->get_col("SELECT DISTINCT marque FROM " . iac_table() . " WHERE marque<>'' AND visible=1 ORDER BY marque");
 }
 /** Carrosseries réellement présentes (pour les filtres) */
 function ia_carrosseries_in_use() {
     global $wpdb;
-    return $wpdb->get_col("SELECT DISTINCT carrosserie FROM " . iac_table() . " WHERE carrosserie<>'' ORDER BY carrosserie");
+    return $wpdb->get_col("SELECT DISTINCT carrosserie FROM " . iac_table() . " WHERE carrosserie<>'' AND visible=1 ORDER BY carrosserie");
 }
 function iac_carburants() { return array('Essence','Diesel','Hybride','Électrique'); }
 function iac_boites()     { return array('Manuelle','Automatique'); }
@@ -149,6 +149,10 @@ function iac_columns_ext() {
         'meta'          => "LONGTEXT NULL",
         'carrosserie'   => "VARCHAR(60) NOT NULL DEFAULT ''",
         'created_by'    => "BIGINT(20) UNSIGNED NOT NULL DEFAULT 0",
+        'visible'            => "TINYINT(1) NOT NULL DEFAULT 1",
+        'nif'                => "VARCHAR(60) NOT NULL DEFAULT ''",
+        'article_imposition' => "VARCHAR(60) NOT NULL DEFAULT ''",
+        'nom_imposition'     => "VARCHAR(160) NOT NULL DEFAULT ''",
     );
 }
 
@@ -224,9 +228,13 @@ function ia_get_vehicles($args = array()) {
         'carrosserie' => '',
         'search'   => '',
         'featured' => null,
+        'visible'  => null,
         'orderby'  => 'created_at',
         'order'    => 'DESC',
     ));
+
+    // Côté site public (hors admin), on ne montre que les véhicules affichés
+    if ($args['visible'] === null && !is_admin()) $args['visible'] = 1;
 
     $where = array('1=1');
     $params = array();
@@ -234,6 +242,7 @@ function ia_get_vehicles($args = array()) {
     if ($args['marque'] !== '') { $where[] = 'marque = %s'; $params[] = $args['marque']; }
     if ($args['carrosserie'] !== '') { $where[] = 'carrosserie = %s'; $params[] = $args['carrosserie']; }
     if ($args['featured'] !== null) { $where[] = 'featured = %d'; $params[] = (int)$args['featured']; }
+    if ($args['visible'] !== null) { $where[] = 'visible = %d'; $params[] = (int)$args['visible']; }
     if ($args['search'] !== '') {
         $like = '%' . $wpdb->esc_like($args['search']) . '%';
         $where[] = '(marque LIKE %s OR modele LIKE %s OR version LIKE %s)';

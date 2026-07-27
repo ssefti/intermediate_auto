@@ -7,7 +7,9 @@ $v = function_exists('ia_get_vehicle') ? ia_get_vehicle($vid) : null;
 
 get_header();
 
-if (!$v) {
+if (!$v || (isset($v->visible) && !$v->visible)) {
+    // Véhicule inexistant ou non affiché sur le site
+    status_header(404);
     echo '<section class="sec"><div class="wrap"><h1>Véhicule introuvable</h1><p><a class="btn btn-gold" href="' . esc_url(ia_url('vehicules')) . '">Retour au catalogue</a></p></div></section>';
     get_footer(); return;
 }

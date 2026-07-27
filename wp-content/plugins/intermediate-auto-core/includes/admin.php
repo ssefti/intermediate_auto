@@ -193,6 +193,10 @@ function iac_save_vehicle() {
         'douane_max' => (int)($_POST['douane_max'] ?? 0),
         'statut'     => sanitize_text_field($_POST['statut'] ?? 'Disponible'),
         'featured'   => isset($_POST['featured']) ? 1 : 0,
+        'visible'            => isset($_POST['visible']) ? 1 : 0,
+        'nif'                => sanitize_text_field($_POST['nif'] ?? ''),
+        'article_imposition' => sanitize_text_field($_POST['article_imposition'] ?? ''),
+        'nom_imposition'     => sanitize_text_field($_POST['nom_imposition'] ?? ''),
         'image_id'   => (int)($_POST['image_id'] ?? 0),
         'description'=> wp_kses_post($_POST['description'] ?? ''),
         'slogan'        => sanitize_text_field($_POST['slogan'] ?? ''),
@@ -386,7 +390,8 @@ function iac_page_list() {
             $pill = $v->statut==='Disponible' ? 'ok' : ($v->statut==='Vendu' ? 'sold' : 'cmd');
             echo '<tr>';
             echo '<td><img class="iac-thumb" src="' . esc_url(ia_vehicle_image($v, 'thumbnail')) . '"></td>';
-            echo '<td>' . (!empty($v->featured) ? '<span title="En vedette">⭐ </span>' : '') . '<strong>' . esc_html(ia_vehicle_title($v)) . '</strong>' . ($v->version ? ' <span style="color:#777">'.esc_html($v->version).'</span>' : '') . '</td>';
+            $nonaff = (isset($v->visible) && !$v->visible) ? ' <span class="iac-pill" style="background:#eee;color:#888">Non affiché</span>' : '';
+            echo '<td>' . (!empty($v->featured) ? '<span title="En vedette">⭐ </span>' : '') . '<strong>' . esc_html(ia_vehicle_title($v)) . '</strong>' . ($v->version ? ' <span style="color:#777">'.esc_html($v->version).'</span>' : '') . $nonaff . '</td>';
             echo '<td>' . esc_html($v->boite) . '</td>';
             echo '<td>' . esc_html($v->couleur) . '</td>';
             echo '<td><strong>' . (int)$v->prix . '</strong> <span style="color:#999">×10⁴ DA</span></td>';
@@ -482,6 +487,20 @@ function iac_page_edit() {
     echo '</select></div>';
     echo '<div class="fld"><label>Mise en avant</label><label style="font-weight:400;display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" name="featured" value="1" ' . checked((int)$get('featured',0), 1, false) . '> ⭐ Mettre ce véhicule en vedette sur l\'accueil</label></div></div>';
 
+    // Visibilité sur le site + informations fiscales (si non affiché)
+    $is_visible = ($v === null) ? 1 : (int)$get('visible', 1);
+    echo '<div class="row"><div class="fld"><label>Visibilité</label>';
+    echo '<label style="font-weight:400;display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" id="ia_visible" name="visible" value="1" ' . checked($is_visible, 1, false) . '> 🌐 Afficher ce véhicule sur le site</label>';
+    echo '<span style="color:#777;font-size:12px">Décochez pour un véhicule privé, non publié dans le catalogue.</span></div><div class="fld"></div></div>';
+
+    echo '<div class="iac-fiscal" style="' . ($is_visible ? 'display:none' : '') . '">';
+    echo '<h2 style="font-size:16px;margin:8px 0 6px;border-top:1px solid #eee;padding-top:16px">Informations fiscales <span style="font-weight:400;color:#999">(véhicule non affiché)</span></h2>';
+    echo '<div class="row">';
+    echo '<div class="fld"><label>NIF</label><input type="text" name="nif" value="' . esc_attr($get('nif')) . '"></div>';
+    echo '<div class="fld"><label>Article d\'imposition</label><input type="text" name="article_imposition" value="' . esc_attr($get('article_imposition')) . '"></div>';
+    echo '<div class="fld"><label>Nom d\'imposition</label><input type="text" name="nom_imposition" value="' . esc_attr($get('nom_imposition')) . '"></div>';
+    echo '</div></div>';
+
     // Slogan + frais de douane (texte)
     echo '<div class="row">';
     echo '<div class="fld"><label>Slogan (accroche)</label><input type="text" name="slogan" value="' . esc_attr($get('slogan')) . '"></div>';
@@ -561,6 +580,10 @@ function iac_page_edit() {
     ?>
     <script>
     jQuery(function($){
+      // Champs fiscaux visibles seulement si le véhicule n'est pas affiché sur le site
+      function syncFiscal(){ $('.iac-fiscal').toggle(!$('#ia_visible').is(':checked')); }
+      $('#ia_visible').on('change', syncFiscal); syncFiscal();
+
       var frame;
       $('#ia_pick_img').on('click', function(e){
         e.preventDefault();
