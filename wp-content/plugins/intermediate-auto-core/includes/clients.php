@@ -16,7 +16,7 @@ function iac_clients_table() {
 
 /* ---------- Listes de référence ---------- */
 function iac_civilites()      { return array('M.', 'Mme', 'Mlle'); }
-function iac_piece_types()    { return array("Carte d'identité (CNI)", 'Permis de conduire', 'Passeport', 'Carte de résidence'); }
+function iac_piece_types()    { return array("Carte d'identité (CNI)", 'Permis de conduire', 'Passeport', 'Carte de résidence', 'Autorisation de sortie'); }
 function iac_client_statuts() { return array('Prospect', 'Acheteur', 'Ancien client'); }
 function iac_wilayas() {
     return array(
