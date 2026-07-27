@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('COMMANDES_VER', '1.3');
+define('COMMANDES_VER', '1.4');
 
 /** Coordonnées légales de la société (modifiables ici si besoin) */
 if (!defined('SOCIETE_NOM'))     define('SOCIETE_NOM', 'Intermediate Auto');
@@ -53,6 +53,7 @@ function commandes_maybe_install() {
         statut VARCHAR(30) NOT NULL DEFAULT 'En cours',
         conditions TEXT NULL,
         notes TEXT NULL,
+        dossier TEXT NULL,
         avance_paiement_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         created_by BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         created_at DATETIME NOT NULL DEFAULT '1000-01-01 00:00:00',
@@ -114,6 +115,12 @@ function commande_prix_net($c) {
 /** Reste à payer d'une commande (sur le prix après remise) */
 function commande_reste($c) {
     return max(0, commande_prix_net($c) - commande_avance_effective($c));
+}
+
+/** IDs des pièces jointes du dossier véhicule */
+function commande_dossier_ids($c) {
+    if (empty($c->dossier)) return array();
+    return array_values(array_filter(array_map('intval', explode(',', $c->dossier))));
 }
 
 /**
@@ -187,6 +194,7 @@ function commande_save() {
         'statut'          => sanitize_text_field($_POST['statut'] ?? 'En cours'),
         'conditions'      => sanitize_textarea_field($_POST['conditions'] ?? ''),
         'notes'           => sanitize_textarea_field($_POST['notes'] ?? ''),
+        'dossier'         => implode(',', array_values(array_filter(array_map('intval', explode(',', $_POST['dossier'] ?? ''))))),
         'updated_at'      => current_time('mysql'),
     );
 
@@ -387,6 +395,26 @@ function commande_page_edit() {
     echo '<div class="fld"><label>Conditions particulières</label><textarea name="conditions" rows="3" placeholder="Conditions de vente, garanties, clauses…">' . esc_textarea($get('conditions')) . '</textarea></div>';
     echo '<div class="fld"><label>Notes internes</label><textarea name="notes" rows="2">' . esc_textarea($get('notes')) . '</textarea></div>';
 
+    // Dossier du véhicule (pièces jointes)
+    echo '<h2 style="font-size:16px;margin:18px 0 6px;border-top:1px solid #eee;padding-top:16px">Dossier du véhicule</h2>';
+    echo '<p style="color:#777;font-size:13px;margin:-4px 0 10px">Documents du véhicule : facture d\'achat, carte grise, connaissement, dédouanement, photos… (PDF, image, etc.)</p>';
+    $dossier_ids = $d ? commande_dossier_ids($d) : array();
+    echo '<input type="hidden" id="cmd_att_ids" name="dossier" value="' . esc_attr(implode(',', $dossier_ids)) . '">';
+    echo '<ul id="cmd_att_list" style="margin:0 0 10px;list-style:none;padding:0">';
+    foreach ($dossier_ids as $aid) {
+        $url = wp_get_attachment_url($aid);
+        if (!$url) continue;
+        $name = get_the_title($aid) ?: basename($url);
+        $icon = wp_attachment_is_image($aid)
+            ? '<img src="' . esc_url(wp_get_attachment_image_url($aid, 'thumbnail')) . '" style="width:34px;height:34px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:8px">'
+            : '<span style="font-size:18px;margin-right:8px">📄</span>';
+        echo '<li data-id="' . (int)$aid . '" style="padding:6px 0;border-bottom:1px solid #f3f3f3">' . $icon
+            . '<a href="' . esc_url($url) . '" target="_blank">' . esc_html($name) . '</a> '
+            . '<a href="#" class="cmd-att-rm" style="color:#b23b3b;margin-left:8px">retirer</a></li>';
+    }
+    echo '</ul>';
+    echo '<button type="button" class="button" id="cmd_att_add">📎 Ajouter des documents</button>';
+
     echo '<p style="margin-top:22px"><button type="submit" class="iac-btn">' . ($id ? 'Enregistrer et voir le bon' : 'Créer la commande') . '</button></p>';
     echo '</form></div>';
     ?>
@@ -407,6 +435,38 @@ function commande_page_edit() {
       });
       $('#commande_prix, #commande_remise').on('input', recalcNet);
       recalcNet();
+
+      // Dossier du véhicule : médiathèque (multi-fichiers)
+      var frame;
+      $('#cmd_att_add').on('click', function(e){
+        e.preventDefault();
+        frame = wp.media({ title:'Dossier du véhicule', button:{text:'Ajouter'}, multiple:true });
+        frame.on('select', function(){
+          var input = $('#cmd_att_ids');
+          var ids = input.val() ? input.val().split(',') : [];
+          frame.state().get('selection').each(function(a){
+            a = a.toJSON();
+            if (ids.indexOf(String(a.id)) === -1){
+              ids.push(String(a.id));
+              var name = a.filename || a.title || ('#' + a.id);
+              var icon = (a.type === 'image' && a.sizes && a.sizes.thumbnail)
+                ? '<img src="'+a.sizes.thumbnail.url+'" style="width:34px;height:34px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:8px">'
+                : '<span style="font-size:18px;margin-right:8px">📄</span>';
+              $('#cmd_att_list').append('<li data-id="'+a.id+'" style="padding:6px 0;border-bottom:1px solid #f3f3f3">'+icon+'<a href="'+a.url+'" target="_blank">'+name+'</a> <a href="#" class="cmd-att-rm" style="color:#b23b3b;margin-left:8px">retirer</a></li>');
+            }
+          });
+          input.val(ids.join(','));
+        });
+        frame.open();
+      });
+      $(document).on('click', '.cmd-att-rm', function(e){
+        e.preventDefault();
+        var li = $(this).closest('li'), id = String(li.data('id'));
+        var input = $('#cmd_att_ids');
+        var ids = input.val() ? input.val().split(',') : [];
+        input.val(ids.filter(function(x){ return x !== id; }).join(','));
+        li.remove();
+      });
     });
     </script>
     <?php
@@ -443,6 +503,20 @@ function commande_page_bon() {
     if (acces_can_edit('commandes')) echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit&id=' . $c->id)) . '">✎ Modifier</a> ';
     echo '<button class="iac-btn" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>';
     echo '</div>';
+
+    // Dossier du véhicule (documents joints — non imprimé)
+    $dossier = commande_dossier_ids($c);
+    if ($dossier) {
+        echo '<div class="wrap no-print" style="margin-bottom:14px"><div class="iac-card" style="max-width:820px;padding:14px 18px">';
+        echo '<h3 style="margin:0 0 8px;font-size:14px">📁 Dossier du véhicule</h3><ul style="margin:0;list-style:none;padding:0">';
+        foreach ($dossier as $aid) {
+            $url = wp_get_attachment_url($aid); if (!$url) continue;
+            $name = get_the_title($aid) ?: basename($url);
+            $icon = wp_attachment_is_image($aid) ? '🖼️' : '📄';
+            echo '<li style="padding:4px 0">' . $icon . ' <a href="' . esc_url($url) . '" target="_blank">' . esc_html($name) . '</a></li>';
+        }
+        echo '</ul></div></div>';
+    }
 
     ?>
     <style>

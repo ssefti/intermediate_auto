@@ -136,7 +136,7 @@ function iac_page_marques() {
 /* ---------- Assets admin (médiathèque + style) ---------- */
 add_action('admin_enqueue_scripts', 'iac_admin_assets');
 function iac_admin_assets($hook) {
-    $on_admin = (strpos($hook, 'vehicules') !== false || strpos($hook, 'ia-clients') !== false || strpos($hook, 'avances') !== false);
+    $on_admin = (strpos($hook, 'vehicules') !== false || strpos($hook, 'ia-clients') !== false || strpos($hook, 'avances') !== false || strpos($hook, 'commandes') !== false);
     $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : '';
     if ($on_admin && $tab === 'edit') {
         wp_enqueue_media();
