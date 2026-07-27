@@ -245,6 +245,43 @@ function avance_delete() {
     exit;
 }
 
+/* ---------- Convertir un paiement en commande ---------- */
+add_action('admin_post_avance_convert_commande', 'avance_convert_commande');
+function avance_convert_commande() {
+    acces_guard(function_exists('acces_can_edit') ? acces_can_edit('commandes') : current_user_can('manage_options'));
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    check_admin_referer('avance_convert_' . $id);
+    $a = $id ? avance_get($id) : null;
+    if (!$a || !function_exists('commandes_table')) {
+        wp_safe_redirect(admin_url('admin.php?page=avances')); exit;
+    }
+    // Déjà rattaché à une commande → on l'ouvre
+    if ((int)$a->commande_id > 0) {
+        wp_safe_redirect(admin_url('admin.php?page=commandes&view=' . (int)$a->commande_id)); exit;
+    }
+    global $wpdb;
+    $ct = commandes_table();
+    $wpdb->insert($ct, array(
+        'client_id'     => (int)$a->client_id,
+        'vehicule_id'   => (int)$a->vehicule_id,
+        'date_commande' => current_time('Y-m-d'),
+        'prix'          => 0,
+        'remise'        => 0,
+        'avance'        => 0,
+        'statut'        => 'En cours',
+        'created_by'    => get_current_user_id(),
+        'created_at'    => current_time('mysql'),
+        'updated_at'    => current_time('mysql'),
+    ));
+    $cid = (int)$wpdb->insert_id;
+    $wpdb->update($ct, array('numero' => 'BC-' . current_time('Y') . '-' . str_pad($cid, 4, '0', STR_PAD_LEFT)), array('id' => $cid));
+    // Rattache le paiement à la nouvelle commande
+    $wpdb->update(avances_table(), array('commande_id' => $cid, 'updated_at' => current_time('mysql')), array('id' => $id));
+    // Ouvre le formulaire de commande pour compléter (véhicule, prix…)
+    wp_safe_redirect(admin_url('admin.php?page=commandes&tab=edit&id=' . $cid));
+    exit;
+}
+
 /* ============================================================
  *  SECTION AVANCES (onglets : Avances / Ajouter)
  * ============================================================ */
@@ -377,6 +414,7 @@ function avances_page_list() {
     $total   = avances_total('Encaissée');
 
     $can_edit = acces_can_edit('avances');
+    $can_cmd  = function_exists('acces_can_edit') ? acces_can_edit('commandes') : true;
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Gestion des paiements complémentaires</h1>';
@@ -414,7 +452,7 @@ function avances_page_list() {
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th style="width:105px">Date</th><th style="width:105px">Type</th><th>Client</th><th>Commande</th><th>Montant</th><th>Reste à payer</th><th>Créé par</th><th>Statut</th><th style="width:140px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th style="width:105px">Date</th><th style="width:105px">Type</th><th>Client</th><th>Commande</th><th>Montant</th><th>Reste à payer</th><th>Créé par</th><th>Statut</th><th style="width:280px">Actions</th></tr></thead><tbody>';
 
     if (!$avances) {
         echo '<tr><td colspan="9">Aucun paiement. <a href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">Enregistrez-en un</a>.</td></tr>';
@@ -446,6 +484,14 @@ function avances_page_list() {
             echo '<td><span class="iac-pill ' . $pill . '">' . esc_html($a->statut) . '</span></td>';
             $recu = admin_url('admin.php?page=avances&recu=' . $a->id);
             echo '<td><a href="' . esc_url($recu) . '">🧾 Reçu</a>';
+            if ($can_cmd) {
+                if ((int)$a->commande_id > 0) {
+                    echo ' | <a href="' . esc_url(admin_url('admin.php?page=commandes&view=' . (int)$a->commande_id)) . '">Voir la commande</a>';
+                } else {
+                    $conv = wp_nonce_url(admin_url('admin-post.php?action=avance_convert_commande&id=' . $a->id), 'avance_convert_' . $a->id);
+                    echo ' | <a href="' . esc_url($conv) . '" style="color:#1a7a3c" onclick="return confirm(\'Créer une commande à partir de ce paiement ?\')">➜ Convertir en commande</a>';
+                }
+            }
             if ($can_edit) {
                 echo ' | <a href="' . esc_url($edit) . '">Modifier</a> | <a href="' . esc_url($del) . '" onclick="return confirm(\'Supprimer ce paiement ?\')" style="color:#b23b3b">Suppr.</a>';
             }
