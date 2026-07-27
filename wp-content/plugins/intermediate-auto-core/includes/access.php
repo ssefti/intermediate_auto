@@ -135,6 +135,12 @@ function acces_user_validate($errors, $update, $user) {
     }
 }
 
+/* ---- Sur les écrans utilisateur, ne proposer que le rôle « Administrateur » ---- */
+add_filter('editable_roles', 'acces_only_admin_role');
+function acces_only_admin_role($roles) {
+    return isset($roles['administrator']) ? array('administrator' => $roles['administrator']) : $roles;
+}
+
 /* ---- Amorçage : on ajoute les accès manquants aux administrateurs.
  *      Version à incrémenter quand on ajoute de nouveaux accès (union, jamais de retrait). ---- */
 add_action('admin_init', 'acces_bootstrap');
