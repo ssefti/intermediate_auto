@@ -607,14 +607,7 @@ function commande_page_bon() {
         $linked = function_exists('avances_for_commande') ? avances_for_commande($c->id) : array();
         ?>
         <table class="bon-amounts">
-            <tr><td class="lbl">Prix total du véhicule</td><td><?php echo esc_html(commande_money($c->prix)); ?></td></tr>
-            <?php if ((float)$c->remise > 0):
-                $rlabel = rtrim(rtrim(number_format((float)$c->remise, 2, ',', ''), '0'), ',');
-                $montant_remise = (float)$c->prix * (float)$c->remise / 100;
-            ?>
-            <tr><td class="lbl">Remise (<?php echo esc_html($rlabel); ?> %)</td><td>- <?php echo esc_html(commande_money($montant_remise)); ?></td></tr>
-            <tr><td class="lbl">Prix après remise</td><td><strong><?php echo esc_html(commande_money(commande_prix_net($c))); ?></strong></td></tr>
-            <?php endif; ?>
+            <tr><td class="lbl">Prix total du véhicule</td><td><?php echo esc_html(commande_money(commande_prix_net($c))); ?></td></tr>
             <?php if ($linked): ?>
                 <?php foreach ($linked as $av): ?>
                 <tr><td class="lbl" style="font-weight:400"><?php
