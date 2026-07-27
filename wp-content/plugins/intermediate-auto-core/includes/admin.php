@@ -270,6 +270,25 @@ function iac_delete_vehicle() {
 /* ============================================================
  *  EXPORT EXCEL (CSV ; + BOM UTF-8, compatible Excel)
  * ============================================================ */
+/** Envoie un fichier CSV (Excel) à partir d'en-têtes et de lignes */
+function iac_csv_output($filename, $headers, $rows) {
+    nocache_headers();
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8 pour Excel
+    fputcsv($out, $headers, ';');
+    foreach ($rows as $r) fputcsv($out, $r, ';');
+    fclose($out);
+    exit;
+}
+
+/** Bouton « Exporter (Excel) » réutilisable */
+function iac_export_button($action) {
+    $url = wp_nonce_url(admin_url('admin-post.php?action=' . $action), $action);
+    return '<a class="button" href="' . esc_url($url) . '">⬇ Exporter (Excel)</a>';
+}
+
 add_action('admin_post_iac_export_csv', 'iac_export_csv');
 function iac_export_csv() {
     acces_guard(acces_can_edit('vehicules'));

@@ -282,6 +282,32 @@ function avance_convert_commande() {
     exit;
 }
 
+/* ---------- Export Excel (CSV) ---------- */
+add_action('admin_post_avance_export', 'avance_export');
+function avance_export() {
+    acces_guard(acces_can_view('avances'));
+    $rows = array();
+    foreach (avances_get_all() as $a) {
+        $cmd_num = ''; $reste = '';
+        if ($a->commande_id && function_exists('commande_get')) {
+            $cm = commande_get($a->commande_id);
+            if ($cm) { $cmd_num = $cm->numero; if (function_exists('commande_reste')) $reste = number_format(commande_reste($cm), 2, ',', ''); }
+        }
+        $rows[] = array(
+            ($a->date_avance && $a->date_avance !== '0000-00-00') ? $a->date_avance : '',
+            isset($a->type_paiement) ? $a->type_paiement : '',
+            avance_client_label($a),
+            $cmd_num,
+            number_format((float)$a->montant, 2, ',', ''),
+            $a->mode_paiement, $a->reference, $a->statut, $reste,
+            $a->created_at !== '1000-01-01 00:00:00' ? $a->created_at : '',
+        );
+    }
+    iac_csv_output('paiements-' . date('Y-m-d') . '.csv',
+        array('Date', 'Type', 'Client', 'Commande', 'Montant', 'Mode', 'Référence', 'Statut', 'Reste commande', 'Créé le'),
+        $rows);
+}
+
 /* ============================================================
  *  SECTION AVANCES (onglets : Avances / Ajouter)
  * ============================================================ */
@@ -417,9 +443,10 @@ function avances_page_list() {
     $can_cmd  = function_exists('acces_can_edit') ? acces_can_edit('commandes') : true;
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
-    echo '<div class="iac-head"><h1>Gestion des paiements complémentaires</h1>';
+    echo '<div class="iac-head"><h1>Gestion des paiements complémentaires</h1><div>';
+    echo iac_export_button('avance_export') . ' ';
     if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=avances&tab=edit')) . '">+ Enregistrer un paiement</a>';
-    echo '</div>';
+    echo '</div></div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array(

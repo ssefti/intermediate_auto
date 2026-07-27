@@ -219,6 +219,30 @@ function iac_toggle_client() {
 /* ============================================================
  *  SECTION CLIENTS (onglets : Clients / Ajouter, + fiche)
  * ============================================================ */
+/* ---------- Export Excel (CSV) ---------- */
+add_action('admin_post_iac_export_clients', 'iac_export_clients');
+function iac_export_clients() {
+    acces_guard(acces_can_view('clients'));
+    $rows = array();
+    foreach (iac_get_clients(array('orderby' => 'id', 'order' => 'DESC')) as $c) {
+        $rows[] = array(
+            $c->type === 'entreprise' ? 'Entreprise' : 'Particulier',
+            $c->type === 'entreprise' ? $c->raison_sociale : $c->nom,
+            $c->type === 'entreprise' ? $c->contact_nom : $c->prenom,
+            $c->telephone, $c->telephone2, $c->email,
+            $c->adresse, $c->ville, $c->wilaya,
+            $c->nif, $c->nis, $c->rc, $c->art,
+            trim($c->piece_type . ' ' . $c->piece_numero),
+            $c->statut_client,
+            $c->active ? 'Actif' : 'Inactif',
+            $c->created_at !== '1000-01-01 00:00:00' ? $c->created_at : '',
+        );
+    }
+    iac_csv_output('clients-' . date('Y-m-d') . '.csv',
+        array('Type', 'Nom / Raison sociale', 'Prénom / Contact', 'Téléphone', 'Téléphone 2', 'Email', 'Adresse', 'Ville', 'Wilaya', 'NIF', 'NIS', 'RC', 'Article imposition', 'Pièce', 'Statut', 'État', 'Créé le'),
+        $rows);
+}
+
 function iac_page_clients_section() {
     acces_guard(acces_can_view('clients'));
     // Fiche d'un client (rendue dans la même page → pas de souci d'autorisation)
@@ -250,9 +274,10 @@ function iac_page_clients_list() {
     $can_edit = acces_can_edit('clients');
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
-    echo '<div class="iac-head"><h1>Clients</h1>';
+    echo '<div class="iac-head"><h1>Clients</h1><div>';
+    echo iac_export_button('iac_export_clients') . ' ';
     if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=ia-clients&tab=edit')) . '">+ Ajouter un client</a>';
-    echo '</div>';
+    echo '</div></div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array(

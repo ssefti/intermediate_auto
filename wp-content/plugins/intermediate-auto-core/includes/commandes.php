@@ -252,6 +252,32 @@ function commandes_page_section() {
     else                 commandes_page_list();
 }
 
+/* ---------- Export Excel (CSV) ---------- */
+add_action('admin_post_commande_export', 'commande_export');
+function commande_export() {
+    acces_guard(acces_can_view('commandes'));
+    $rows = array();
+    foreach (commandes_get_all() as $c) {
+        $client = ''; if ($c->client_id && function_exists('iac_get_client')) { $cl = iac_get_client($c->client_id); if ($cl) $client = iac_client_name($cl); }
+        $veh = ''; if ($c->vehicule_id && function_exists('ia_get_vehicle')) { $vv = ia_get_vehicle($c->vehicule_id); if ($vv) $veh = ia_vehicle_title($vv); }
+        $rows[] = array(
+            $c->numero,
+            ($c->date_commande && $c->date_commande !== '0000-00-00') ? $c->date_commande : '',
+            $client, $veh, $c->couleur,
+            number_format((float)$c->prix, 2, ',', ''),
+            (float)$c->remise,
+            number_format(commande_prix_net($c), 2, ',', ''),
+            number_format(commande_avance_effective($c), 2, ',', ''),
+            number_format(commande_reste($c), 2, ',', ''),
+            $c->statut, $c->delai_livraison,
+            $c->created_at !== '1000-01-01 00:00:00' ? $c->created_at : '',
+        );
+    }
+    iac_csv_output('commandes-' . date('Y-m-d') . '.csv',
+        array('N°', 'Date', 'Client', 'Véhicule', 'Couleur', 'Prix', 'Remise %', 'Prix net', 'Payé', 'Reste', 'Statut', 'Délai', 'Créé le'),
+        $rows);
+}
+
 /* ============================================================
  *  PAGE : Liste des commandes
  * ============================================================ */
@@ -263,9 +289,10 @@ function commandes_page_list() {
     $can_edit = acces_can_edit('commandes');
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
-    echo '<div class="iac-head"><h1>Gestion des commandes</h1>';
+    echo '<div class="iac-head"><h1>Gestion des commandes</h1><div>';
+    echo iac_export_button('commande_export') . ' ';
     if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit')) . '">+ Nouvelle commande</a>';
-    echo '</div>';
+    echo '</div></div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array('csaved' => 'Commande enregistrée.', 'cdeleted' => 'Commande supprimée.');

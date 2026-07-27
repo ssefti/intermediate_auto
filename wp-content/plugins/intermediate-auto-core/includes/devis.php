@@ -191,6 +191,30 @@ function devis_convert() {
     exit;
 }
 
+/* ---------- Export Excel (CSV) ---------- */
+add_action('admin_post_devis_export', 'devis_export');
+function devis_export() {
+    acces_guard(acces_can_view('devis'));
+    $rows = array();
+    foreach (devis_get_all() as $d) {
+        $client = ''; if ($d->client_id && function_exists('iac_get_client')) { $cl = iac_get_client($d->client_id); if ($cl) $client = iac_client_name($cl); }
+        $veh = ''; if ($d->vehicule_id && function_exists('ia_get_vehicle')) { $vv = ia_get_vehicle($d->vehicule_id); if ($vv) $veh = ia_vehicle_title($vv); }
+        $rows[] = array(
+            $d->numero,
+            ($d->date_devis && $d->date_devis !== '0000-00-00') ? $d->date_devis : '',
+            $client, $veh,
+            number_format((float)$d->prix, 2, ',', ''),
+            (float)$d->remise,
+            number_format(devis_prix_net($d), 2, ',', ''),
+            $d->statut,
+            $d->created_at !== '1000-01-01 00:00:00' ? $d->created_at : '',
+        );
+    }
+    iac_csv_output('devis-' . date('Y-m-d') . '.csv',
+        array('N°', 'Date', 'Client', 'Véhicule', 'Prix estimé', 'Remise %', 'Total estimé', 'Statut', 'Créé le'),
+        $rows);
+}
+
 /* ============================================================
  *  SECTION DEVIS
  * ============================================================ */
@@ -215,9 +239,10 @@ function devis_page_list() {
 
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
-    echo '<div class="iac-head"><h1>Devis (Proforma)</h1>';
+    echo '<div class="iac-head"><h1>Devis (Proforma)</h1><div>';
+    echo iac_export_button('devis_export') . ' ';
     if ($can_edit) echo '<a class="iac-btn" href="' . esc_url(admin_url('admin.php?page=devis&tab=edit')) . '">+ Nouveau devis</a>';
-    echo '</div>';
+    echo '</div></div>';
 
     if (isset($_GET['iac_msg'])) {
         $m = array('dsaved' => 'Devis enregistré.', 'ddeleted' => 'Devis supprimé.');
