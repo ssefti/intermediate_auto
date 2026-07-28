@@ -11,7 +11,7 @@
 
 <div class="topbar"><div class="wrap">
   <div>📞 <?php echo esc_html(IA_PHONE); ?> &nbsp;·&nbsp; ✉ <?php echo esc_html(IA_EMAIL); ?></div>
-  <div><a href="#" class="gold">FR</a> | <a href="#">AR</a> &nbsp; 📍 <?php echo esc_html(IA_ADDRESS); ?></div>
+  <div>📍 <?php echo esc_html(IA_ADDRESS); ?></div>
 </div></div>
 
 <header class="nav"><div class="wrap">
