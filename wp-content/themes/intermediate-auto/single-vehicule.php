@@ -23,9 +23,12 @@ $colors = isset($meta['colors']) ? $meta['colors'] : array();
 // Couleurs avec URL de leur photo (couleur ↔ photo)
 $color_items = array();
 foreach ($colors as $c) {
+    $nom = isset($c['nom']) ? trim($c['nom']) : '';
     $pid = isset($c['photo']) ? (int)$c['photo'] : 0;
+    // Ignorer les couleurs « vides » : sans nom ni photo (seul le hex par défaut)
+    if ($nom === '' && !$pid) continue;
     $color_items[] = array(
-        'nom'   => isset($c['nom']) ? $c['nom'] : '',
+        'nom'   => $nom,
         'hex'   => isset($c['hex']) ? $c['hex'] : '',
         'url'   => $pid ? wp_get_attachment_image_url($pid,'large') : '',
         'thumb' => $pid ? wp_get_attachment_image_url($pid,'medium') : '',
@@ -136,7 +139,7 @@ $specs = array(
       <?php if ($color_items): ?>
       <div class="vcolors"><div class="lbl">Couleurs disponibles <span style="text-transform:none;color:#888">— cliquez pour changer la photo</span></div>
         <?php foreach ($color_items as $ci): $hex=$ci['hex']?:'#cccccc'; ?>
-          <span class="swatch<?php echo $ci['url']?' clk':''; ?>"<?php if($ci['url']) echo ' data-full="'.esc_url($ci['url']).'"'; ?>><i style="background:<?php echo esc_attr($hex); ?>"></i><?php echo esc_html($ci['nom'] ?: $hex); ?></span>
+          <span class="swatch<?php echo $ci['url']?' clk':''; ?>"<?php if($ci['url']) echo ' data-full="'.esc_url($ci['url']).'"'; ?>><i style="background:<?php echo esc_attr($hex); ?>"></i><?php echo esc_html($ci['nom'] ?: 'Couleur'); ?></span>
         <?php endforeach; ?>
       </div>
       <?php endif; ?>

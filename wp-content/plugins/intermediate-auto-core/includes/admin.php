@@ -224,7 +224,8 @@ function iac_save_vehicle() {
         $nom = sanitize_text_field($_POST["coul{$i}_nom"] ?? '');
         $hex = sanitize_text_field($_POST["coul{$i}_hex"] ?? '');
         $photo = (int)($_POST["coul{$i}_photo"] ?? 0);
-        if ($nom!=='' || $hex!=='' || $photo) $colors[] = array('nom'=>$nom, 'hex'=>$hex, 'photo'=>$photo);
+        // Le champ type=color renvoie toujours un hex → on ne garde la couleur que si elle a un nom ou une photo
+        if ($nom!=='' || $photo) $colors[] = array('nom'=>$nom, 'hex'=>$hex, 'photo'=>$photo);
     }
 
     $data['meta'] = wp_json_encode(array(
