@@ -166,7 +166,10 @@ $brands = array('GEELY','MG','LIVAN','GAC','JETTA','T-ROC','RONGWEI');
 
 <!-- BRANDS -->
 <div class="brands"><div class="track">
-  <?php for ($i=0;$i<2;$i++) foreach ($brands as $k=>$b) echo '<span class="b' . ($k===0?' on':'') . '">' . esc_html($b) . '</span>'; ?>
+  <?php for ($i=0;$i<2;$i++) foreach ($brands as $k=>$b) {
+      $burl = esc_url(add_query_arg('marque', rawurlencode($b), ia_url('vehicules')));
+      echo '<a class="b' . ($k===0?' on':'') . '" href="' . $burl . '" style="text-decoration:none" title="Voir les ' . esc_attr($b) . '">' . esc_html($b) . '</a>';
+  } ?>
 </div></div>
 
 <!-- VEHICULES EN VEDETTE -->
