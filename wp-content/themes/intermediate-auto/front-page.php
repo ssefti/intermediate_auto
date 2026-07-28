@@ -161,7 +161,6 @@ $brands = array('GEELY','MG','LIVAN','GAC','JETTA','T-ROC','RONGWEI');
       <div>✔ Marques <b>neuves</b> importées</div>
     </div>
   </div>
-  <div class="scrolldown">⌄</div>
 </section>
 
 <!-- BRANDS -->
