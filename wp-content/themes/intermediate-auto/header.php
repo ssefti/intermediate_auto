@@ -10,8 +10,8 @@
 <?php wp_body_open(); ?>
 
 <div class="topbar"><div class="wrap">
-  <div>📞 <?php echo esc_html(IA_PHONE); ?> &nbsp;·&nbsp; ✉ <?php echo esc_html(IA_EMAIL); ?></div>
-  <div>📍 <?php echo esc_html(IA_ADDRESS); ?></div>
+  <div>📞 <a href="<?php echo esc_url(ia_tel_link()); ?>"><?php echo esc_html(IA_PHONE); ?></a> &nbsp;·&nbsp; ✉ <a href="mailto:<?php echo esc_attr(IA_EMAIL); ?>"><?php echo esc_html(IA_EMAIL); ?></a></div>
+  <div>📍 <a href="<?php echo esc_url(ia_maps_link()); ?>" target="_blank" rel="noopener"><?php echo esc_html(IA_ADDRESS); ?></a></div>
 </div></div>
 
 <header class="nav"><div class="wrap">

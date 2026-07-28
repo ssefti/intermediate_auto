@@ -38,6 +38,16 @@ function ia_wa_link($text = 'Bonjour, je vous contacte depuis votre site.') {
     return 'https://wa.me/' . IA_WHATSAPP . '?text=' . rawurlencode($text);
 }
 
+/** Lien d'appel téléphonique (tel:) */
+function ia_tel_link() {
+    return 'tel:' . preg_replace('/\s+/', '', IA_PHONE);
+}
+
+/** Lien Google Maps vers l'adresse */
+function ia_maps_link() {
+    return 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode(IA_ADDRESS);
+}
+
 /** Navigation principale avec état actif */
 function ia_nav() {
     $items = array(

@@ -44,10 +44,10 @@ $models = ia_vehicles_safe(array('orderby'=>'marque','order'=>'ASC'));
 </div></section>
 
 <section style="padding:0 0 18px"><div class="wrap"><div class="qc">
-  <div class="c"><div class="ic">📞</div><h3>Téléphone</h3><b><?php echo esc_html(IA_PHONE); ?></b><p>Dim – Jeu, 9h30 – 18h</p></div>
-  <div class="c"><div class="ic">✉️</div><h3>E-mail</h3><b style="font-size:13px"><?php echo esc_html(IA_EMAIL); ?></b></div>
-  <div class="c"><div class="ic">📍</div><h3>Showroom</h3><b>Boufarik</b><p>Algérie</p></div>
-  <div class="c"><div class="ic">💬</div><h3>WhatsApp</h3><b><?php echo esc_html(IA_PHONE); ?></b><p>Réponse rapide</p></div>
+  <div class="c"><div class="ic">📞</div><h3>Téléphone</h3><b><a href="<?php echo esc_url(ia_tel_link()); ?>"><?php echo esc_html(IA_PHONE); ?></a></b><p>Dim – Jeu, 9h30 – 18h</p></div>
+  <div class="c"><div class="ic">✉️</div><h3>E-mail</h3><b style="font-size:13px"><a href="mailto:<?php echo esc_attr(IA_EMAIL); ?>"><?php echo esc_html(IA_EMAIL); ?></a></b></div>
+  <div class="c"><div class="ic">📍</div><h3>Showroom</h3><b><a href="<?php echo esc_url(ia_maps_link()); ?>" target="_blank" rel="noopener">Boufarik</a></b><p>Algérie</p></div>
+  <div class="c"><div class="ic">💬</div><h3>WhatsApp</h3><b><a href="<?php echo esc_url(ia_wa_link()); ?>" target="_blank" rel="noopener"><?php echo esc_html(IA_PHONE); ?></a></b><p>Réponse rapide</p></div>
 </div></div></section>
 
 <section class="sec" style="padding:46px 0"><div class="wrap"><div class="lay">
@@ -69,10 +69,10 @@ $models = ia_vehicles_safe(array('orderby'=>'marque','order'=>'ASC'));
   <div>
     <div class="infocard">
       <h3>Nos coordonnées</h3>
-      <div class="irow"><div class="ic">📍</div><div class="tx"><span>Showroom</span><b><?php echo esc_html(IA_ADDRESS); ?>, Algérie</b></div></div>
-      <div class="irow"><div class="ic">📞</div><div class="tx"><span>Téléphone</span><b><?php echo esc_html(IA_PHONE); ?></b></div></div>
-      <div class="irow"><div class="ic">✉️</div><div class="tx"><span>E-mail</span><b><?php echo esc_html(IA_EMAIL); ?></b></div></div>
-      <div class="irow"><div class="ic">💬</div><div class="tx"><span>WhatsApp</span><b><?php echo esc_html(IA_PHONE); ?></b></div></div>
+      <div class="irow"><div class="ic">📍</div><div class="tx"><span>Showroom</span><b><a href="<?php echo esc_url(ia_maps_link()); ?>" target="_blank" rel="noopener"><?php echo esc_html(IA_ADDRESS); ?>, Algérie</a></b></div></div>
+      <div class="irow"><div class="ic">📞</div><div class="tx"><span>Téléphone</span><b><a href="<?php echo esc_url(ia_tel_link()); ?>"><?php echo esc_html(IA_PHONE); ?></a></b></div></div>
+      <div class="irow"><div class="ic">✉️</div><div class="tx"><span>E-mail</span><b><a href="mailto:<?php echo esc_attr(IA_EMAIL); ?>"><?php echo esc_html(IA_EMAIL); ?></a></b></div></div>
+      <div class="irow"><div class="ic">💬</div><div class="tx"><span>WhatsApp</span><b><a href="<?php echo esc_url(ia_wa_link()); ?>" target="_blank" rel="noopener"><?php echo esc_html(IA_PHONE); ?></a></b></div></div>
     </div>
     <div class="hours">
       <h3>Horaires du showroom</h3>
@@ -81,7 +81,7 @@ $models = ia_vehicles_safe(array('orderby'=>'marque','order'=>'ASC'));
       <div class="hrow"><span>Samedi</span><b class="closed">Fermé</b></div>
     </div>
     <div class="mapbox" style="background-image:linear-gradient(rgba(20,20,20,.25),rgba(20,20,20,.35)),url(<?php echo esc_url(ia_img('MG5_intermediate_auto_coverpage2-1.jpeg')); ?>)">
-      <div class="pin">📍 Intermediate Auto<small><?php echo esc_html(IA_ADDRESS); ?></small></div>
+      <a class="pin" href="<?php echo esc_url(ia_maps_link()); ?>" target="_blank" rel="noopener" style="text-decoration:none">📍 Intermediate Auto<small><?php echo esc_html(IA_ADDRESS); ?></small></a>
     </div>
   </div>
 </div></div></section>

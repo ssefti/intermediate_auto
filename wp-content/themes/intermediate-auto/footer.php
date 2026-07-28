@@ -34,7 +34,7 @@
     </div>
     <div>
       <h4>Contact</h4>
-      <a>📍 <?php echo esc_html(IA_ADDRESS); ?></a>
+      <a href="<?php echo esc_url(ia_maps_link()); ?>" target="_blank" rel="noopener">📍 <?php echo esc_html(IA_ADDRESS); ?></a>
       <a href="tel:<?php echo esc_attr(preg_replace('/\s+/','',IA_PHONE)); ?>">📞 <?php echo esc_html(IA_PHONE); ?></a>
       <a href="mailto:<?php echo esc_attr(IA_EMAIL); ?>">✉ <?php echo esc_html(IA_EMAIL); ?></a>
     </div>
