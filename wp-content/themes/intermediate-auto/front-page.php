@@ -96,7 +96,7 @@ $brands = array('GEELY','MG','LIVAN','GAC','JETTA','T-ROC','RONGWEI');
   <div class="bg" style="background-image:url(<?php echo esc_url(ia_img('Livan_Gold_Intermediate_auto_cover4.png')); ?>)"></div>
   <div class="veil"></div>
   <div class="wrap">
-    <span class="badge">Intermédiaire automobile · Alger</span>
+    <span class="badge">Intermédiaire automobile · Blida</span>
     <h1>Votre intermédiaire de <span>confiance</span> pour importer votre voiture en Algérie</h1>
     <p>Choix du véhicule, devis, expédition et dédouanement : nous vous accompagnons de A à Z, depuis notre showroom à Boufarik.</p>
     <div class="cta">
@@ -104,7 +104,7 @@ $brands = array('GEELY','MG','LIVAN','GAC','JETTA','T-ROC','RONGWEI');
       <a class="btn btn-ghost" href="<?php echo esc_url(ia_url('simulateur')); ?>">Simuler mes frais de douane</a>
     </div>
     <div class="trust">
-      <div>✔ <b>Showroom</b> physique à Alger</div>
+      <div>✔ <b>Showroom</b> physique à Blida</div>
       <div>✔ Accompagnement <b>A → Z</b></div>
       <div>✔ Marques <b>neuves</b> importées</div>
     </div>
@@ -218,7 +218,7 @@ $brands = array('GEELY','MG','LIVAN','GAC','JETTA','T-ROC','RONGWEI');
 <section class="sec" style="background:var(--bg2)"><div class="wrap">
   <div class="sec-c reveal"><span class="eyebrow">Ils nous font confiance</span><h2>Avis de nos clients</h2></div>
   <div class="tst">
-    <div class="q reveal"><div class="star">★★★★★</div><p>« Accompagnement du début à la fin, frais de douane annoncés sans surprise. Je recommande. »</p><div class="who">— Karim B., Alger</div></div>
+    <div class="q reveal"><div class="star">★★★★★</div><p>« Accompagnement du début à la fin, frais de douane annoncés sans surprise. Je recommande. »</p><div class="who">— Karim B., Blida</div></div>
     <div class="q reveal"><div class="star">★★★★★</div><p>« Le simulateur m'a permis de connaître mon budget réel avant de commander. Très pro. »</p><div class="who">— Sara M., Blida</div></div>
     <div class="q reveal"><div class="star">★★★★★</div><p>« Showroom sérieux, équipe à l'écoute, livraison conforme. »</p><div class="who">— Yacine T., Boumerdès</div></div>
   </div>
@@ -229,12 +229,12 @@ $brands = array('GEELY','MG','LIVAN','GAC','JETTA','T-ROC','RONGWEI');
   <div class="sec-c reveal"><span class="eyebrow">Questions fréquentes</span><h2>Tout savoir avant d'importer</h2></div>
   <div class="faq">
     <div class="qa"><div class="q open">Comment importer une voiture en Algérie ?<span class="p">–</span></div>
-      <div class="a show">Nous vous accompagnons à chaque étape : choix du véhicule, devis, commande, expédition puis dédouanement et immatriculation, depuis notre showroom à Alger.</div></div>
+      <div class="a show">Nous vous accompagnons à chaque étape : choix du véhicule, devis, commande, expédition puis dédouanement et immatriculation, depuis notre showroom à Blida.</div></div>
     <div class="qa"><div class="q">Comment sont calculés les frais de douane ?<span class="p">+</span></div>
       <div class="a">Les frais dépendent du modèle, de la motorisation et du barème en vigueur. Notre simulateur vous en donne une estimation immédiate.</div></div>
     <div class="qa"><div class="q">Quels sont les délais de livraison ?<span class="p">+</span></div>
       <div class="a">Ils varient selon le modèle et l'acheminement ; nous vous communiquons une estimation lors du devis.</div></div>
-    <div class="qa"><div class="q">Puis-je visiter votre showroom à Alger ?<span class="p">+</span></div>
+    <div class="qa"><div class="q">Puis-je visiter votre showroom à Blida ?<span class="p">+</span></div>
       <div class="a">Oui, vous êtes les bienvenus à Boufarik pendant nos horaires d'ouverture.</div></div>
   </div>
 </div></section>
