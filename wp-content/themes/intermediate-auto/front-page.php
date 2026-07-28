@@ -103,6 +103,58 @@ $brands = array('GEELY','MG','LIVAN','GAC','JETTA','T-ROC','RONGWEI');
       <a class="btn btn-gold" href="<?php echo esc_url(ia_url('vehicules')); ?>">Voir nos véhicules</a>
       <a class="btn btn-ghost" href="<?php echo esc_url(ia_url('simulateur')); ?>">Simuler mes frais de douane</a>
     </div>
+
+    <?php
+    $ia_search_data = array();
+    if (function_exists('ia_get_vehicles')) {
+        foreach (ia_get_vehicles(array('orderby' => 'marque', 'order' => 'ASC')) as $sv) {
+            $ia_search_data[] = array(
+                'label'  => trim(ia_vehicle_title($sv)),
+                'marque' => $sv->marque,
+                'url'    => ia_vehicle_url($sv),
+                'thumb'  => ia_vehicle_image($sv, 'thumbnail'),
+            );
+        }
+    }
+    ?>
+    <style>
+    .hsearch{position:relative;max-width:540px;margin:24px 0 6px}
+    .hsearch input{width:100%;padding:15px 20px;border:0;border-radius:999px;font-size:16px;box-shadow:0 12px 34px rgba(0,0,0,.28);outline:none;color:#1a1a1a}
+    .hs-results{position:absolute;top:calc(100% + 8px);left:0;right:0;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.32);overflow:hidden;z-index:45;display:none;max-height:360px;overflow-y:auto}
+    .hs-results.open{display:block}
+    .hs-results a{display:flex;align-items:center;gap:12px;padding:10px 16px;color:#1a1a1a;text-decoration:none;border-bottom:1px solid #f2f2f2;line-height:1.3}
+    .hs-results a:hover{background:#faf7ef}
+    .hs-results img{width:54px;height:40px;object-fit:cover;border-radius:6px;background:#eee;flex:none}
+    .hs-results .m{font-size:12px;color:#999}
+    .hs-empty{padding:14px 16px;color:#888;font-size:14px}
+    </style>
+    <div class="hsearch">
+      <input type="text" id="hs_input" placeholder="Rechercher un véhicule ou une marque…" autocomplete="off" aria-label="Rechercher un véhicule">
+      <div id="hs_results" class="hs-results"></div>
+    </div>
+    <script>
+    (function(){
+      var data = <?php echo wp_json_encode($ia_search_data); ?>;
+      var input = document.getElementById('hs_input'), box = document.getElementById('hs_results');
+      if(!input || !box) return;
+      function norm(s){ var t=(s||'').toString().toLowerCase(); try{ t=t.normalize('NFD').replace(/[̀-ͯ]/g,''); }catch(e){} return t; }
+      function esc(s){ return (s||'').toString().replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+      function render(q){
+        var nq = norm(q);
+        if(!nq){ box.classList.remove('open'); box.innerHTML=''; return; }
+        var res = data.filter(function(v){ return norm(v.label).indexOf(nq) > -1 || norm(v.marque).indexOf(nq) > -1; }).slice(0,8);
+        box.innerHTML = res.length ? res.map(function(v){
+          return '<a href="'+esc(v.url)+'"><img src="'+esc(v.thumb)+'" alt=""><span><strong>'+esc(v.label)+'</strong><br><span class="m">'+esc(v.marque)+'</span></span></a>';
+        }).join('') : '<div class="hs-empty">Aucun véhicule trouvé.</div>';
+        box.classList.add('open');
+      }
+      input.addEventListener('input', function(){ render(this.value); });
+      input.addEventListener('focus', function(){ if(this.value) render(this.value); });
+      input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ var a = box.querySelector('a'); if(a) location.href = a.getAttribute('href'); } });
+      document.addEventListener('click', function(e){ if(!e.target.closest('.hsearch')) box.classList.remove('open'); });
+    })();
+    </script>
+
     <div class="trust">
       <div>✔ <b>Showroom</b> physique à Blida</div>
       <div>✔ Accompagnement <b>A → Z</b></div>
