@@ -100,6 +100,16 @@ $specs = array(
 .vue a:hover img{transform:scale(1.03);border-color:var(--gold)}
 @media(max-width:900px){.vue{grid-template-columns:repeat(3,1fr)}.vue img{height:100px}}
 @media(max-width:560px){.vue{grid-template-columns:repeat(2,1fr)}}
+/* Visionneuse (lightbox) */
+.vlb-ov{position:fixed;inset:0;background:rgba(10,10,10,.93);z-index:9999;display:none;align-items:center;justify-content:center}
+.vlb-ov.open{display:flex}
+.vlb-ov img{max-width:92vw;max-height:84vh;border-radius:8px;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.vlb-ov .vlb-x{position:absolute;top:14px;right:22px;color:#fff;font-size:42px;line-height:1;cursor:pointer;background:none;border:0}
+.vlb-ov .vlb-nav{position:absolute;top:50%;transform:translateY(-50%);color:#fff;font-size:56px;line-height:1;cursor:pointer;background:none;border:0;padding:10px 20px;-webkit-user-select:none;user-select:none}
+.vlb-ov .vlb-prev{left:6px}.vlb-ov .vlb-next{right:6px}
+.vlb-ov .vlb-nav:hover,.vlb-ov .vlb-x:hover{color:var(--gold2)}
+.vlb-ov .vlb-count{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#ddd;font-size:14px}
+@media(max-width:560px){.vlb-ov .vlb-nav{font-size:40px;padding:8px 12px}}
 .prose-desc{font-size:15.5px;color:#444;line-height:1.7;max-width:900px}
 .prose-desc mark{background:transparent;color:inherit}
 @media(max-width:900px){.vtop{grid-template-columns:1fr}.specgrid,.equip,.vue{grid-template-columns:1fr 1fr}}
@@ -156,10 +166,35 @@ $specs = array(
   <div class="vuehead">Vue d'ensemble</div>
   <div class="vue">
     <?php foreach ($vue as $gid): $u=wp_get_attachment_image_url($gid,'large'); $tu=wp_get_attachment_image_url($gid,'medium'); if(!$u) continue; ?>
-      <a href="<?php echo esc_url($u); ?>" target="_blank" rel="noopener"><img src="<?php echo esc_url($tu?:$u); ?>" alt="<?php echo esc_attr($title); ?>"></a>
+      <a class="vlb" href="<?php echo esc_url($u); ?>"><img src="<?php echo esc_url($tu?:$u); ?>" alt="<?php echo esc_attr($title); ?>"></a>
     <?php endforeach; ?>
   </div>
 </div></div>
+
+<div class="vlb-ov" id="vlb" role="dialog" aria-modal="true">
+  <button class="vlb-x" id="vlb_x" aria-label="Fermer">&times;</button>
+  <button class="vlb-nav vlb-prev" id="vlb_prev" aria-label="Photo précédente">&#8249;</button>
+  <img id="vlb_img" src="" alt="">
+  <button class="vlb-nav vlb-next" id="vlb_next" aria-label="Photo suivante">&#8250;</button>
+  <div class="vlb-count" id="vlb_count"></div>
+</div>
+<script>
+(function(){
+  var links = [].slice.call(document.querySelectorAll('a.vlb'));
+  if(!links.length) return;
+  var urls = links.map(function(a){ return a.getAttribute('href'); });
+  var ov=document.getElementById('vlb'), img=document.getElementById('vlb_img'), cnt=document.getElementById('vlb_count'), idx=0;
+  function show(i){ idx=(i+urls.length)%urls.length; img.src=urls[idx]; cnt.textContent=(idx+1)+' / '+urls.length; }
+  function open(i){ show(i); ov.classList.add('open'); document.body.style.overflow='hidden'; }
+  function close(){ ov.classList.remove('open'); img.src=''; document.body.style.overflow=''; }
+  links.forEach(function(a,i){ a.addEventListener('click', function(e){ e.preventDefault(); open(i); }); });
+  document.getElementById('vlb_x').addEventListener('click', close);
+  document.getElementById('vlb_next').addEventListener('click', function(e){ e.stopPropagation(); show(idx+1); });
+  document.getElementById('vlb_prev').addEventListener('click', function(e){ e.stopPropagation(); show(idx-1); });
+  ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+  document.addEventListener('keydown', function(e){ if(!ov.classList.contains('open')) return; if(e.key==='Escape') close(); else if(e.key==='ArrowRight') show(idx+1); else if(e.key==='ArrowLeft') show(idx-1); });
+})();
+</script>
 <?php endif; ?>
 
 <!-- FICHE TECHNIQUE -->
