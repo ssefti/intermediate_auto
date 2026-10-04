@@ -6,7 +6,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('COMMANDES_VER', '1.4');
+define('COMMANDES_VER', '1.5');
 
 /** Coordonnées légales de la société (modifiables ici si besoin) */
 if (!defined('SOCIETE_NOM'))     define('SOCIETE_NOM', 'Intermediate Auto');
@@ -45,6 +45,7 @@ function commandes_maybe_install() {
         vehicule_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
         date_commande DATE NULL DEFAULT NULL,
         couleur VARCHAR(120) NOT NULL DEFAULT '',
+        numero_chassis VARCHAR(40) NOT NULL DEFAULT '',
         prix DECIMAL(14,2) NOT NULL DEFAULT 0,
         remise DECIMAL(5,2) NOT NULL DEFAULT 0,
         avance DECIMAL(14,2) NOT NULL DEFAULT 0,
@@ -80,8 +81,8 @@ function commandes_get_all($args = array()) {
     if ($args['statut'] !== '') { $where[] = 'statut = %s'; $params[] = $args['statut']; }
     if ($args['search'] !== '') {
         $like = '%' . $wpdb->esc_like($args['search']) . '%';
-        $where[] = '(numero LIKE %s OR couleur LIKE %s)';
-        array_push($params, $like, $like);
+        $where[] = '(numero LIKE %s OR couleur LIKE %s OR numero_chassis LIKE %s)';
+        array_push($params, $like, $like, $like);
     }
     $allowed = array('id', 'date_commande', 'prix');
     $orderby = in_array($args['orderby'], $allowed, true) ? $args['orderby'] : 'id';
@@ -150,6 +151,8 @@ function commande_sync_avance_paiement($cid, $avance, $mode) {
             'updated_at'    => current_time('mysql'),
         );
         if ($pid > 0 && $wpdb->get_var($wpdb->prepare("SELECT id FROM {$at} WHERE id = %d", $pid))) {
+            // Paiement déjà existant : on garde son type et ses notes d'origine
+            unset($pdata['type_paiement'], $pdata['notes']);
             $wpdb->update($at, $pdata, array('id' => $pid));
         } else {
             $pdata['created_at'] = current_time('mysql');
@@ -186,6 +189,7 @@ function commande_save() {
         'vehicule_id'     => (int)($_POST['vehicule_id'] ?? 0),
         'date_commande'   => $date,
         'couleur'         => sanitize_text_field($_POST['couleur'] ?? ''),
+        'numero_chassis'  => strtoupper(sanitize_text_field($_POST['numero_chassis'] ?? '')),
         'prix'            => round($prix, 2),
         'remise'          => round($remise, 2),
         'avance'          => round($avance, 2),
@@ -198,7 +202,8 @@ function commande_save() {
         'updated_at'      => current_time('mysql'),
     );
 
-    if ($id > 0) {
+    $is_edit = $id > 0;
+    if ($is_edit) {
         $wpdb->update(commandes_table(), $data, array('id' => $id));
     } else {
         $data['created_at'] = current_time('mysql');
@@ -210,6 +215,16 @@ function commande_save() {
         $numero = 'BC-' . $year . '-' . str_pad($id, 4, '0', STR_PAD_LEFT);
         $wpdb->update(commandes_table(), array('numero' => $numero), array('id' => $id));
     }
+    // Flux « nouveau client » : la commande reprend le paiement déjà créé (pas de doublon)
+    $from_avance = isset($_POST['from_avance']) ? (int)$_POST['from_avance'] : 0;
+    $linked_av   = ($from_avance > 0 && function_exists('avance_get')) ? avance_get($from_avance) : null;
+    if ($linked_av && (int)$linked_av->commande_id === 0 && !$is_edit) {
+        $wpdb->update(avances_table(), array('commande_id' => $id, 'vehicule_id' => $data['vehicule_id'], 'updated_at' => current_time('mysql')), array('id' => $from_avance));
+        $wpdb->update(commandes_table(), array('avance_paiement_id' => $from_avance, 'avance' => (float)$linked_av->montant), array('id' => $id));
+        wp_safe_redirect(admin_url('admin.php?page=commandes&view=' . $id . '&iac_msg=csaved&done=1'));
+        exit;
+    }
+
     // Avance saisie → paiement lié (création / mise à jour / suppression)
     commande_sync_avance_paiement($id, $avance, $data['mode_paiement']);
 
@@ -350,7 +365,18 @@ function commandes_page_list() {
 function commande_page_edit() {
     $id  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     $c   = $id ? commande_get($id) : null;
-    $get = function($k, $d = '') use ($c) { return $c && isset($c->$k) ? $c->$k : $d; };
+    // Flux « nouveau client » : préremplissage depuis le paiement qui vient d'être créé
+    $from_avance = (!$id && isset($_GET['from_avance'])) ? (int)$_GET['from_avance'] : 0;
+    $pre = ($from_avance && function_exists('avance_get')) ? avance_get($from_avance) : null;
+    if ($pre && (int)$pre->commande_id !== 0) $pre = null;
+    $get = function($k, $d = '') use ($c, $pre) {
+        if ($c && isset($c->$k)) return $c->$k;
+        if ($pre) {
+            $map = array('client_id' => 'client_id', 'vehicule_id' => 'vehicule_id', 'avance' => 'montant', 'mode_paiement' => 'mode_paiement');
+            if (isset($map[$k]) && $pre->{$map[$k]}) return $pre->{$map[$k]};
+        }
+        return $d;
+    };
     iac_admin_style();
 
     echo '<div class="wrap iac-wrap">';
@@ -361,6 +387,10 @@ function commande_page_edit() {
     wp_nonce_field('commande_save');
     echo '<input type="hidden" name="action" value="commande_save">';
     echo '<input type="hidden" name="id" value="' . esc_attr($id) . '">';
+    if ($pre) {
+        echo '<input type="hidden" name="from_avance" value="' . (int)$pre->id . '">';
+        echo '<p style="margin:0 0 16px;padding:10px 14px;background:#eef7ee;border-radius:8px;color:#2d6a2d">Paiement enregistré (' . esc_html(commande_money($pre->montant)) . '). Complétez maintenant la commande associée.</p>';
+    }
 
     // Client + véhicule
     echo '<div class="row">';
@@ -386,6 +416,7 @@ function commande_page_edit() {
     // Couleur + date
     echo '<div class="row">';
     echo '<div class="fld"><label>Couleur choisie</label><input type="text" name="couleur" value="' . esc_attr($get('couleur')) . '"></div>';
+    echo '<div class="fld"><label>Numéro de châssis <span style="font-weight:400;color:#999">— facultatif</span></label><input type="text" name="numero_chassis" maxlength="40" style="text-transform:uppercase" value="' . esc_attr($get('numero_chassis')) . '"></div>';
     echo '<div class="fld"><label>Date de commande</label><input type="date" name="date_commande" value="' . esc_attr(($get('date_commande') && $get('date_commande') !== '0000-00-00') ? $get('date_commande') : current_time('Y-m-d')) . '"></div>';
     echo '</div>';
 
@@ -393,7 +424,7 @@ function commande_page_edit() {
     echo '<div class="row">';
     echo '<div class="fld"><label>Prix total (DA)</label><input type="number" step="0.01" min="0" id="commande_prix" name="prix" value="' . esc_attr($get('prix', '')) . '" required></div>';
     echo '<div class="fld"><label>Remise (%)</label><input type="number" step="0.01" min="0" max="100" id="commande_remise" name="remise" value="' . esc_attr($get('remise', '0')) . '"></div>';
-    echo '<div class="fld"><label>Avance versée (DA) <span style="font-weight:400;color:#999">— enregistrée comme paiement</span></label><input type="number" step="0.01" min="0" name="avance" value="' . esc_attr($get('avance', '0')) . '"></div>';
+    echo '<div class="fld"><label>Avance versée (DA) <span style="font-weight:400;color:#999">— enregistrée comme paiement</span></label><input type="number" step="0.01" min="0" name="avance" value="' . esc_attr($get('avance', '0')) . '"' . ($pre ? ' readonly' : '') . '></div>';
     echo '</div>';
     echo '<p id="commande_net_line" style="margin:-6px 0 16px;color:#555">Prix après remise : <strong id="commande_net">—</strong></p>';
 
@@ -425,7 +456,7 @@ function commande_page_edit() {
     // Dossier du véhicule (pièces jointes)
     echo '<h2 style="font-size:16px;margin:18px 0 6px;border-top:1px solid #eee;padding-top:16px">Dossier du véhicule</h2>';
     echo '<p style="color:#777;font-size:13px;margin:-4px 0 10px">Documents du véhicule : facture d\'achat, carte grise, connaissement, dédouanement, photos… (PDF, image, etc.)</p>';
-    $dossier_ids = $d ? commande_dossier_ids($d) : array();
+    $dossier_ids = $c ? commande_dossier_ids($c) : array();
     echo '<input type="hidden" id="cmd_att_ids" name="dossier" value="' . esc_attr(implode(',', $dossier_ids)) . '">';
     echo '<ul id="cmd_att_list" style="margin:0 0 10px;list-style:none;padding:0">';
     foreach ($dossier_ids as $aid) {
@@ -442,7 +473,9 @@ function commande_page_edit() {
     echo '</ul>';
     echo '<button type="button" class="button" id="cmd_att_add">📎 Ajouter des documents</button>';
 
-    echo '<p style="margin-top:22px"><button type="submit" class="iac-btn">' . ($id ? 'Enregistrer et voir le bon' : 'Créer la commande') . '</button></p>';
+    echo '<p style="margin-top:22px"><button type="submit" class="iac-btn">' . ($id ? 'Enregistrer et voir le bon' : 'Créer la commande') . '</button>';
+    if ($pre) echo ' <a class="button" style="margin-left:8px" href="' . esc_url(admin_url('admin.php?page=avances&recu=' . (int)$pre->id)) . '" title="Le paiement reste enregistré">Annuler — garder le paiement sans commande</a>';
+    echo '</p>';
     echo '</form></div>';
     ?>
     <script>
@@ -523,6 +556,22 @@ function commande_page_bon() {
     $soc_addr  = defined('IA_ADDRESS') ? IA_ADDRESS : '';
     $soc_phone = defined('IA_PHONE')   ? IA_PHONE   : '';
     $soc_email = defined('IA_EMAIL')   ? IA_EMAIL   : '';
+
+    // Fenêtre de dialogue après le flux « nouveau client → paiement → commande »
+    if (!empty($_GET['done'])) {
+        $pid = (int)($c->avance_paiement_id ?? 0);
+        $bon_url = admin_url('admin.php?page=commandes&view=' . $c->id);
+        echo '<div id="iac-done" class="no-print" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;display:flex;align-items:center;justify-content:center">';
+        echo '<div style="background:#fff;border-radius:12px;padding:28px 32px;max-width:420px;width:90%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)">';
+        echo '<div style="font-size:38px">✅</div>';
+        echo '<h2 style="margin:8px 0 6px">Commande ' . esc_html($c->numero) . ' créée</h2>';
+        echo '<p style="color:#666;margin:0 0 20px">Le paiement et la commande ont été enregistrés.</p>';
+        echo '<a class="iac-btn" style="display:block;margin-bottom:10px;text-decoration:none" href="' . esc_url($bon_url) . '">📄 Voir le bon de commande</a>';
+        if ($pid && function_exists('acces_can_view') && acces_can_view('avances')) {
+            echo '<a class="button" style="display:block;padding:4px 0" href="' . esc_url(admin_url('admin.php?page=avances&recu=' . $pid)) . '">🧾 Voir le reçu de paiement</a>';
+        }
+        echo '</div></div>';
+    }
 
     // Barre d'outils (non imprimée)
     echo '<div class="wrap no-print" style="margin-bottom:14px">';
@@ -624,6 +673,7 @@ function commande_page_bon() {
                     if ($veh->boite)     echo '<div class="l"><span>Boîte</span><span>' . esc_html($veh->boite) . '</span></div>';
                 } else { echo '<div class="l"><span>Véhicule</span><span>—</span></div>'; }
                 if ($c->couleur)         echo '<div class="l"><span>Couleur</span><span>' . esc_html($c->couleur) . '</span></div>';
+                if ($c->numero_chassis)  echo '<div class="l"><span>N° de châssis</span><b>' . esc_html($c->numero_chassis) . '</b></div>';
                 if ($c->delai_livraison) echo '<div class="l"><span>Délai</span><span>' . esc_html($c->delai_livraison) . '</span></div>';
                 ?>
             </div>

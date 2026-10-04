@@ -190,6 +190,11 @@ function iac_save_client() {
         $data['created_by'] = get_current_user_id();
         $wpdb->insert(iac_clients_table(), $data);
         $msg = 'ccreated';
+        // Client autre que « Prospect » → enchaîne sur la saisie de son paiement
+        if ($data['statut_client'] !== 'Prospect' && function_exists('acces_can_edit') && acces_can_edit('avances')) {
+            wp_safe_redirect(admin_url('admin.php?page=avances&tab=edit&flow=client&client_id=' . (int)$wpdb->insert_id));
+            exit;
+        }
     }
     wp_safe_redirect(admin_url('admin.php?page=ia-clients&iac_msg=' . $msg));
     exit;

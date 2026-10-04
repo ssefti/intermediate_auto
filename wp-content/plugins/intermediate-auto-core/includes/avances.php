@@ -226,6 +226,11 @@ function avance_save() {
         $id  = (int)$wpdb->insert_id;
         $msg = 'acreated';
     }
+    // Flux « nouveau client » : après le paiement, on enchaîne sur la commande associée
+    if (!empty($_POST['flow_client']) && $msg === 'acreated' && function_exists('acces_can_edit') && acces_can_edit('commandes')) {
+        wp_safe_redirect(admin_url('admin.php?page=commandes&tab=edit&from_avance=' . $id));
+        exit;
+    }
     // Après enregistrement, on ouvre directement le reçu du paiement
     wp_safe_redirect(admin_url('admin.php?page=avances&recu=' . $id . '&iac_msg=' . $msg));
     exit;
@@ -540,6 +545,9 @@ function avance_page_edit() {
     $pre_commande = isset($_GET['commande_id']) ? (int)$_GET['commande_id'] : 0;
     $cur_commande = (int)$get('commande_id', $pre_commande);
     $cur_client   = (int)$get('client_id', 0);
+    // Flux « nouveau client » (?client_id= & flow=client)
+    $flow_client = !$id && isset($_GET['flow']) && $_GET['flow'] === 'client';
+    if (!$cur_client && $flow_client && isset($_GET['client_id'])) $cur_client = (int)$_GET['client_id'];
     if (!$cur_client && $pre_commande && function_exists('commande_get')) {
         $pc = commande_get($pre_commande);
         if ($pc) $cur_client = (int)$pc->client_id;
@@ -554,6 +562,10 @@ function avance_page_edit() {
     wp_nonce_field('avance_save');
     echo '<input type="hidden" name="action" value="avance_save">';
     echo '<input type="hidden" name="id" value="' . esc_attr($id) . '">';
+    if ($flow_client) {
+        echo '<input type="hidden" name="flow_client" value="1">';
+        echo '<p style="margin:0 0 16px;padding:10px 14px;background:#eef7ee;border-radius:8px;color:#2d6a2d">Client créé. Enregistrez maintenant son paiement : la commande associée sera ensuite créée.</p>';
+    }
 
     // Client + commande
     echo '<div class="row">';
@@ -627,7 +639,9 @@ function avance_page_edit() {
     echo '</ul>';
     echo '<button type="button" class="button" id="av_att_add">📎 Ajouter un justificatif</button>';
 
-    echo '<p style="margin-top:22px"><button type="submit" class="iac-btn">' . ($id ? 'Enregistrer les modifications' : 'Enregistrer l\'avance') . '</button></p>';
+    echo '<p style="margin-top:22px"><button type="submit" class="iac-btn">' . ($id ? 'Enregistrer les modifications' : 'Enregistrer l\'avance') . '</button>';
+    if ($flow_client) echo ' <a class="button" style="margin-left:8px" href="' . esc_url(admin_url('admin.php?page=ia-clients&iac_msg=ccreated')) . '">Annuler — créer le client seulement</a>';
+    echo '</p>';
     echo '</form></div>';
 
     // JS : médiathèque justificatifs
