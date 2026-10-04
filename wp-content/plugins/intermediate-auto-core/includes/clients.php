@@ -175,7 +175,6 @@ function iac_save_client() {
         'ville'         => sanitize_text_field($_POST['ville'] ?? ''),
         'wilaya'        => sanitize_text_field($_POST['wilaya'] ?? ''),
         'vehicule_id'   => (int)($_POST['vehicule_id'] ?? 0),
-        'statut_client' => sanitize_text_field($_POST['statut_client'] ?? 'Prospect'),
         'notes'         => sanitize_textarea_field($_POST['notes'] ?? ''),
         'attachments'   => implode(',', $att_ids),
         'updated_at'    => current_time('mysql'),
@@ -190,8 +189,9 @@ function iac_save_client() {
         $data['created_by'] = get_current_user_id();
         $wpdb->insert(iac_clients_table(), $data);
         $msg = 'ccreated';
-        // Client autre que « Prospect » → enchaîne sur la saisie de son paiement
-        if ($data['statut_client'] !== 'Prospect' && function_exists('acces_can_edit') && acces_can_edit('avances')) {
+        // Nouveau client : enchaîne sur la saisie de son paiement (annulable) ;
+        // le statut passe à « Acheteur » une fois le paiement enregistré
+        if (function_exists('acces_can_edit') && acces_can_edit('avances')) {
             wp_safe_redirect(admin_url('admin.php?page=avances&tab=edit&flow=client&client_id=' . (int)$wpdb->insert_id));
             exit;
         }
@@ -539,12 +539,7 @@ function iac_page_client_edit() {
     echo '</select></div>';
     echo '</div>';
 
-    /* ---- Statut + notes (le statut déclenche l'enchaînement paiement → commande) ---- */
-    echo '<div class="row" style="border-top:1px solid #eee;padding-top:16px;margin-top:18px">';
-    echo '<div class="fld"><label>Statut</label><select name="statut_client">';
-    foreach (iac_client_statuts() as $s) echo '<option ' . selected($get('statut_client', 'Prospect'), $s, false) . '>' . esc_html($s) . '</option>';
-    echo '</select></div>';
-    echo '</div>';
+    /* ---- Notes (le statut est géré automatiquement) ---- */
     // Véhicule concerné : champ masqué (inutile ici), valeur existante conservée
     echo '<input type="hidden" name="vehicule_id" value="' . esc_attr((int)$get('vehicule_id', 0)) . '">';
     echo '<div class="fld"><label>Notes</label><textarea name="notes" rows="3">' . esc_textarea($get('notes')) . '</textarea></div>';

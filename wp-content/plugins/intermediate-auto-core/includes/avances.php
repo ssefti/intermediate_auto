@@ -227,6 +227,9 @@ function avance_save() {
         $msg = 'acreated';
     }
     // Flux « nouveau client » : après le paiement, on enchaîne sur la commande associée
+    if (!empty($_POST['flow_client']) && $msg === 'acreated' && $data['client_id'] && function_exists('iac_clients_table')) {
+        $wpdb->update(iac_clients_table(), array('statut_client' => 'Acheteur'), array('id' => $data['client_id'], 'statut_client' => 'Prospect'));
+    }
     if (!empty($_POST['flow_client']) && $msg === 'acreated' && function_exists('acces_can_edit') && acces_can_edit('commandes')) {
         wp_safe_redirect(admin_url('admin.php?page=commandes&tab=edit&from_avance=' . $id));
         exit;
