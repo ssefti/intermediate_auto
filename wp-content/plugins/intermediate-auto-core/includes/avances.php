@@ -570,7 +570,8 @@ function avance_page_edit() {
         echo '<p style="margin:0 0 16px;padding:10px 14px;background:#eef7ee;border-radius:8px;color:#2d6a2d">Client créé. Enregistrez maintenant son paiement : la commande associée sera ensuite créée.</p>';
     }
 
-    // Client + commande
+    // Client (le paiement précède la commande : le lien commande est conservé en champ masqué)
+    echo '<input type="hidden" name="commande_id" value="' . (int)$cur_commande . '">';
     echo '<div class="row">';
     echo '<div class="fld"><label>Client</label><select name="client_id" required>';
     echo '<option value="">— Choisir un client —</option>';
@@ -580,21 +581,15 @@ function avance_page_edit() {
         }
     }
     echo '</select></div>';
-    echo '<div class="fld"><label>Commande associée (facultatif)</label><select id="avance_commande" name="commande_id">';
-    echo '<option value="0">— Aucune —</option>';
-    if (function_exists('commandes_get_all')) {
-        foreach (commandes_get_all() as $cmd) {
-            $lbl = $cmd->numero;
-            if ($cmd->client_id && function_exists('iac_get_client')) { $ccl = iac_get_client($cmd->client_id); if ($ccl) $lbl .= ' — ' . iac_client_name($ccl); }
-            $c_total = function_exists('commande_prix_net') ? commande_prix_net($cmd) : (float)$cmd->prix;
-            $c_paid  = function_exists('avances_sum_for_commande') ? avances_sum_for_commande($cmd->id) : 0;
-            $c_reste = function_exists('commande_reste') ? commande_reste($cmd) : max(0, $c_total - $c_paid);
-            echo '<option value="' . (int)$cmd->id . '" data-total="' . esc_attr($c_total) . '" data-paid="' . esc_attr($c_paid) . '" data-reste="' . esc_attr($c_reste) . '" ' . selected($cur_commande, (int)$cmd->id, false) . '>' . esc_html($lbl) . '</option>';
-        }
-    }
-    echo '</select></div>';
     echo '</div>';
-    echo '<p id="avance_solde_info" style="margin:-6px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555;display:none"></p>';
+    // Si le paiement est déjà rattaché à une commande : rappel du solde
+    $cmd_info = ($cur_commande && function_exists('commande_get')) ? commande_get($cur_commande) : null;
+    if ($cmd_info) {
+        $c_total = commande_prix_net($cmd_info);
+        $c_paid  = function_exists('avances_sum_for_commande') ? avances_sum_for_commande($cmd_info->id) : 0;
+        $c_reste = commande_reste($cmd_info);
+        echo '<p id="avance_solde_info" data-reste="' . esc_attr($c_reste) . '" style="margin:-6px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555">Commande ' . esc_html($cmd_info->numero) . ' — total : <strong>' . esc_html(avance_money($c_total)) . '</strong> · déjà payé : <strong>' . esc_html(avance_money($c_paid)) . '</strong> · <span style="color:#C05A00">reste : <strong>' . esc_html(avance_money($c_reste)) . '</strong></span> &nbsp;·&nbsp; <a href="#" id="avance_fill_reste">Payer le solde</a></p>';
+    }
 
     // Véhicule : déduit de la commande → champ masqué (valeur existante conservée)
     echo '<input type="hidden" name="vehicule_id" value="' . esc_attr((int)$get('vehicule_id', 0)) . '">';
@@ -652,23 +647,11 @@ function avance_page_edit() {
     <script>
     jQuery(function($){
       // Reste à payer de la commande liée (calcul automatique)
-      function fmtDA(n){ return (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' DA'; }
-      function showSolde(){
-        var opt = $('#avance_commande').find('option:selected');
-        var info = $('#avance_solde_info');
-        if (!opt.length || opt.val() === '0' || opt.data('total') === undefined){ info.hide(); return; }
-        var total = parseFloat(opt.data('total')) || 0;
-        var paid  = parseFloat(opt.data('paid'))  || 0;
-        var reste = parseFloat(opt.data('reste')) || 0;
-        info.html('Commande — total : <strong>'+fmtDA(total)+'</strong> · déjà payé : <strong>'+fmtDA(paid)+'</strong> · <span style="color:#C05A00">reste : <strong>'+fmtDA(reste)+'</strong></span> &nbsp;·&nbsp; <a href="#" id="avance_fill_reste">Payer le solde</a>').show();
-      }
-      $('#avance_commande').on('change', showSolde);
       $(document).on('click', '#avance_fill_reste', function(e){
         e.preventDefault();
-        var reste = parseFloat($('#avance_commande').find('option:selected').data('reste')) || 0;
+        var reste = parseFloat($('#avance_solde_info').data('reste')) || 0;
         if (reste > 0) $('#avance_montant').val(reste.toFixed(2));
       });
-      showSolde();
 
       var frame;
       $('#av_att_add').on('click', function(e){
