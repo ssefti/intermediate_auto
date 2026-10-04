@@ -56,6 +56,17 @@ function dashboard_page() {
     if ($has_av) {
         $enc = (float)$wpdb->get_var($wpdb->prepare("SELECT COALESCE(SUM(montant),0) FROM {$at} WHERE statut=%s AND date_avance BETWEEN %s AND %s", 'Encaissée', $from, $to));
     }
+    // Frais variables : une fois par véhicule commandé (commandes non annulées de la période)
+    // dont le prix a été calculé (prix d'achat renseigné). Valeurs actuelles du menu Frais variables.
+    $nb_calc = 0;
+    if ($has_cmd && $has_vh) {
+        $nb_calc = (int)$wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$ct} c INNER JOIN {$vt} v ON v.id = c.vehicule_id WHERE v.prix_achat IS NOT NULL AND c.statut <> %s AND c.date_commande BETWEEN %s AND %s",
+            'Annulée', $from, $to));
+    }
+    $fv = function_exists('frais_get') ? frais_get() : array('frais_transport' => 0, 'marge_beneficiaire' => 0);
+    $total_transport = $nb_calc * (float)$fv['frais_transport'];
+    $total_marge     = $nb_calc * (float)$fv['marge_beneficiaire'];
     $clients_actifs = $has_cl ? (int)$wpdb->get_var("SELECT COUNT(*) FROM {$clt} WHERE active=1") : 0;
 
     // ---- Filtre de dates (formulaire + raccourcis) ----
@@ -89,6 +100,8 @@ function dashboard_page() {
     printf('<div class="iac-card"><div class="n">%s</div><div class="l">Chiffre d\'affaires (commandes)</div></div>', esc_html(dashboard_money($ca)));
     printf('<div class="iac-card"><div class="n">%s</div><div class="l">Encaissé (avances)</div></div>', esc_html(dashboard_money($enc)));
     printf('<div class="iac-card" style="border-left-color:#E07B20"><div class="n">%s</div><div class="l">Reste à encaisser</div></div>', esc_html(dashboard_money($reste_total)));
+    printf('<div class="iac-card"><div class="n">%s $</div><div class="l">Total frais de transport (%d véhicule%s)</div></div>', esc_html(number_format($total_transport, 2, ',', ' ')), $nb_calc, $nb_calc > 1 ? 's' : '');
+    printf('<div class="iac-card"><div class="n">%s</div><div class="l">Total marge bénéficiaire (%d véhicule%s)</div></div>', esc_html(dashboard_money($total_marge)), $nb_calc, $nb_calc > 1 ? 's' : '');
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Commandes (période)</div></div>', $nb_cmd);
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Clients actifs</div></div>', $clients_actifs);
     printf('<div class="iac-card"><div class="n">%d</div><div class="l">Clients ayant commandé</div></div>', $clients_periode);
