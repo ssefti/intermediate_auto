@@ -21,6 +21,7 @@ function iac_admin_menu() {
     if (acces_can_view('commandes')) add_submenu_page('intermediate-auto', 'Gestion des commandes', 'Gestion des commandes', 'read', 'commandes', 'commandes_page_section');
     if (acces_can_view('livraisons')) add_submenu_page('intermediate-auto', 'Gestion des livraisons', 'Gestion des livraisons', 'read', 'livraisons', 'livraisons_page_section');
     if (acces_can_view('douane'))     add_submenu_page('intermediate-auto', 'Douane', 'Douane', 'read', 'douane', 'douane_page_section');
+    if (acces_can_view('frais'))      add_submenu_page('intermediate-auto', 'Frais variables', 'Frais variables', 'read', 'frais-variables', 'frais_page_section');
 }
 
 /* ---------- Barre d'onglets d'une section ---------- */

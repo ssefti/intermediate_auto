@@ -23,6 +23,8 @@ function acces_options() {
         'livraisons_view' => 'Affichage des livraisons',
         'douane_edit'    => 'Création / Modification des bons de douane',
         'douane_view'    => 'Affichage de la douane',
+        'frais_edit'     => 'Modification des frais variables',
+        'frais_view'     => 'Affichage des frais variables',
         'devis_edit'     =>'Création / Modification des devis (Proforma)',
         'devis_view'     => 'Affichage des devis (Proforma)',
     );
@@ -70,6 +72,7 @@ function acces_first_section_url() {
     if (acces_can_view('commandes')) return admin_url('admin.php?page=commandes');
     if (acces_can_view('livraisons')) return admin_url('admin.php?page=livraisons');
     if (acces_can_view('douane'))     return admin_url('admin.php?page=douane');
+    if (acces_can_view('frais'))      return admin_url('admin.php?page=frais-variables');
     return '';
 }
 
@@ -151,7 +154,7 @@ function acces_only_admin_role($roles) {
  *      Version à incrémenter quand on ajoute de nouveaux accès (union, jamais de retrait). ---- */
 add_action('admin_init', 'acces_bootstrap');
 function acces_bootstrap() {
-    $ver = '5';
+    $ver = '6';
     if (get_option('acces_bootstrap') === $ver) return;
     $all = array_keys(acces_options());
     foreach (get_users(array('role' => 'administrator', 'fields' => array('ID'))) as $a) {
