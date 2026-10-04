@@ -57,7 +57,7 @@ function frais_page_section() {
     $dis = $can_edit ? '' : ' disabled';
     echo '<div class="row">';
     echo '<div class="fld"><label>Taux de change <span style="font-weight:400;color:#999">— facultatif</span></label><input type="number" step="0.0001" min="0" name="taux_change" value="' . esc_attr($f['taux_change']) . '"' . $dis . '></div>';
-    echo '<div class="fld"><label>Frais de transport (DA) <span style="font-weight:400;color:#999">— facultatif</span></label><input type="number" step="0.01" min="0" name="frais_transport" value="' . esc_attr($f['frais_transport']) . '"' . $dis . '></div>';
+    echo '<div class="fld"><label>Frais de transport ($) <span style="font-weight:400;color:#999">— facultatif</span></label><input type="number" step="0.01" min="0" name="frais_transport" value="' . esc_attr($f['frais_transport']) . '"' . $dis . '></div>';
     echo '</div>';
     echo '<div class="row">';
     echo '<div class="fld"><label>Marge bénéficiaire (DA) <span style="font-weight:400;color:#999">— facultatif, 200 000 DA par défaut</span></label><input type="number" step="0.01" min="0" name="marge_beneficiaire" value="' . esc_attr($f['marge_beneficiaire']) . '"' . $dis . '></div>';
