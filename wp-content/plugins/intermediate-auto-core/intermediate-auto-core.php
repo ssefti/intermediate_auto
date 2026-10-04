@@ -312,5 +312,6 @@ require_once IAC_DIR . 'includes/clients.php';
 require_once IAC_DIR . 'includes/avances.php';
 require_once IAC_DIR . 'includes/commandes.php';
 require_once IAC_DIR . 'includes/livraisons.php';
+require_once IAC_DIR . 'includes/douane.php';
 require_once IAC_DIR . 'includes/devis.php';
 require_once IAC_DIR . 'includes/dashboard.php';
