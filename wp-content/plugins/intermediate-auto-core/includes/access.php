@@ -19,7 +19,9 @@ function acces_options() {
         'avances_view'   => 'Affichage des paiements',
         'commandes_edit' => 'Création / Modification des commandes',
         'commandes_view' => 'Affichage des commandes',
-        'devis_edit'     => 'Création / Modification des devis (Proforma)',
+        'livraisons_edit' => 'Création / Modification des livraisons',
+        'livraisons_view' => 'Affichage des livraisons',
+        'devis_edit'     =>'Création / Modification des devis (Proforma)',
         'devis_view'     => 'Affichage des devis (Proforma)',
     );
 }
@@ -64,6 +66,7 @@ function acces_first_section_url() {
     if (acces_can_view('clients'))   return admin_url('admin.php?page=ia-clients');
     if (acces_can_view('avances'))   return admin_url('admin.php?page=avances');
     if (acces_can_view('commandes')) return admin_url('admin.php?page=commandes');
+    if (acces_can_view('livraisons')) return admin_url('admin.php?page=livraisons');
     return '';
 }
 
@@ -145,7 +148,7 @@ function acces_only_admin_role($roles) {
  *      Version à incrémenter quand on ajoute de nouveaux accès (union, jamais de retrait). ---- */
 add_action('admin_init', 'acces_bootstrap');
 function acces_bootstrap() {
-    $ver = '3';
+    $ver = '4';
     if (get_option('acces_bootstrap') === $ver) return;
     $all = array_keys(acces_options());
     foreach (get_users(array('role' => 'administrator', 'fields' => array('ID'))) as $a) {

@@ -577,6 +577,7 @@ function commande_page_bon() {
     echo '<div class="wrap no-print" style="margin-bottom:14px">';
     echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=commandes')) . '">← Retour à la liste</a> ';
     if (acces_can_edit('commandes')) echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=commandes&tab=edit&id=' . $c->id)) . '">✎ Modifier</a> ';
+    if (function_exists('acces_can_edit') && acces_can_edit('livraisons')) echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=livraisons&tab=edit&commande_id=' . $c->id)) . '">🚚 Créer un bon de livraison</a> ';
     echo '<button class="iac-btn" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>';
     echo '</div>';
 
