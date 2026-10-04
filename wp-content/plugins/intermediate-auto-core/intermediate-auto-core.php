@@ -9,7 +9,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('IAC_VER', '1.6');
+define('IAC_VER', '1.7');
 define('IAC_DIR', plugin_dir_path(__FILE__));
 define('IAC_URL', plugin_dir_url(__FILE__));
 
@@ -153,6 +153,7 @@ function iac_columns_ext() {
         'nif'                => "VARCHAR(60) NOT NULL DEFAULT ''",
         'article_imposition' => "VARCHAR(60) NOT NULL DEFAULT ''",
         'nom_imposition'     => "VARCHAR(160) NOT NULL DEFAULT ''",
+        'prix_achat'         => "DECIMAL(12,2) NULL DEFAULT NULL", // $ ; NULL = ancien véhicule (prix conservé)
     );
 }
 

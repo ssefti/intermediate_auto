@@ -197,7 +197,6 @@ function iac_save_vehicle() {
         'carburant'  => sanitize_text_field($_POST['carburant'] ?? ''),
         'couleur'    => sanitize_text_field($_POST['couleur'] ?? ''),
         'carrosserie'=> sanitize_text_field($_POST['carrosserie'] ?? ''),
-        'prix'       => (int)($_POST['prix'] ?? 0),
         'douane_min' => (int)($_POST['douane_min'] ?? 0),
         'douane_max' => (int)($_POST['douane_max'] ?? 0),
         'statut'     => sanitize_text_field($_POST['statut'] ?? 'Disponible'),
@@ -250,9 +249,21 @@ function iac_save_vehicle() {
         'transmission_txt' => sanitize_text_field($_POST['transmission_txt'] ?? ''),
     ));
 
-    // Prix : modifiable uniquement avec l'accès dédié (on ignore un prix posté sans autorisation)
-    if (function_exists('acces_has') && !acces_has('vehicules_prix')) {
-        $data['prix'] = ($id > 0 && ($ev = ia_get_vehicle($id))) ? (int)$ev->prix : 0;
+    // Prix d'achat ($) : modifiable uniquement avec l'accès dédié.
+    // Le prix de vente (DA) est calculé : (achat + transport) × taux de change + marge.
+    // Les anciens véhicules (sans prix d'achat) gardent leur prix tant qu'aucun prix d'achat n'est saisi.
+    $ev = ($id > 0) ? ia_get_vehicle($id) : null;
+    $can_prix = !function_exists('acces_has') || acces_has('vehicules_prix');
+    if ($can_prix) {
+        $pa = trim((string)($_POST['prix_achat'] ?? ''));
+        $data['prix_achat'] = ($pa === '') ? null : round(max(0, (float)str_replace(array(' ', ','), array('', '.'), $pa)), 2);
+    } else {
+        $data['prix_achat'] = ($ev && $ev->prix_achat !== null) ? (float)$ev->prix_achat : null;
+    }
+    $data['prix'] = $ev ? (int)$ev->prix : 0;
+    if ($can_prix && $data['prix_achat'] !== null && function_exists('frais_prix_vente_units')) {
+        $calc = frais_prix_vente_units($data['prix_achat']);
+        if ($calc !== null) $data['prix'] = $calc;
     }
 
     if ($id > 0) {
@@ -527,9 +538,16 @@ function iac_page_edit() {
     // Prix + douane min/max + statut
     echo '<div class="row">';
     $can_prix = !function_exists('acces_has') || acces_has('vehicules_prix');
-    echo '<div class="fld"><label>Prix (×10 000 DA)</label><input type="number" name="prix" value="' . esc_attr($get('prix',0)) . '" min="0" ' . ($can_prix ? '' : 'disabled') . '>';
+    $fr = function_exists('frais_get') ? frais_get() : array('taux_change' => '', 'frais_transport' => '', 'marge_beneficiaire' => '');
+    $pa_val = ($v && $v->prix_achat !== null) ? $v->prix_achat : '';
+    echo '<div class="fld"><label>Prix d\'achat ($)</label><input type="number" step="0.01" min="0" id="iac_prix_achat" name="prix_achat" value="' . esc_attr($pa_val) . '" ' . ($can_prix ? '' : 'disabled') . '>';
     if (!$can_prix) echo '<span style="color:#777;font-size:12px">Vous n\'avez pas l\'autorisation de modifier le prix.</span>';
     echo '</div>';
+    $cur_prix = (int)$get('prix', 0);
+    echo '<div class="fld"><label>Prix actuel (×10 000 DA) <span style="font-weight:400;color:#999">— calculé</span></label><input type="number" id="iac_prix_calc" value="' . esc_attr($cur_prix) . '" readonly style="background:#f3f4f6">';
+    echo '<span id="iac_prix_info" style="color:#777;font-size:12px" data-taux="' . esc_attr($fr['taux_change']) . '" data-transport="' . esc_attr($fr['frais_transport']) . '" data-marge="' . esc_attr($fr['marge_beneficiaire']) . '">'
+        . ($v && $v->prix_achat === null && $cur_prix ? 'Ancien prix conservé tant qu\'aucun prix d\'achat n\'est saisi. ' : '')
+        . '(Prix d\'achat + Frais de transport) × Taux de change + Marge bénéficiaire</span></div>';
     echo '<div class="fld"><label>Douane min (M)</label><input type="number" name="douane_min" value="' . esc_attr($get('douane_min',0)) . '" min="0"></div>';
     echo '<div class="fld"><label>Douane max (M)</label><input type="number" name="douane_max" value="' . esc_attr($get('douane_max',0)) . '" min="0"></div>';
     echo '</div>';
@@ -620,6 +638,19 @@ function iac_page_edit() {
       // Champs fiscaux visibles seulement si le véhicule n'est pas affiché sur le site
       function syncFiscal(){ $('.iac-fiscal').toggle(!$('#ia_visible').is(':checked')); }
       $('#ia_visible').on('change', syncFiscal); syncFiscal();
+
+      // Prix de vente calculé : (achat + transport) × taux de change + marge, en ×10 000 DA
+      var $info = $('#iac_prix_info'), baseInfo = $info.html();
+      function calcPrix(){
+        var pa = $('#iac_prix_achat').val();
+        if (pa === '') { $info.html(baseInfo); return; }
+        var taux = parseFloat($info.data('taux')) || 0;
+        if (!taux) { $info.text('Renseignez le taux de change dans « Frais variables » pour calculer le prix.'); return; }
+        var da = ((parseFloat(pa) || 0) + (parseFloat($info.data('transport')) || 0)) * taux + (parseFloat($info.data('marge')) || 0);
+        $('#iac_prix_calc').val(Math.round(da / 10000));
+        $info.text('= ' + Math.round(da).toLocaleString('fr-FR') + ' DA — (Prix d\'achat + Frais de transport) × Taux de change + Marge bénéficiaire');
+      }
+      $('#iac_prix_achat').on('input', calcPrix);
 
       var frame;
       $('#ia_pick_img').on('click', function(e){
