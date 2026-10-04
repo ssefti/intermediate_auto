@@ -539,9 +539,8 @@ function iac_page_client_edit() {
     echo '</select></div>';
     echo '</div>';
 
-    /* ---- Suivi commercial ---- */
-    echo '<h2 style="font-size:16px;margin:18px 0 6px;border-top:1px solid #eee;padding-top:16px">Suivi commercial</h2>';
-    echo '<div class="row">';
+    /* ---- Statut + notes (le statut déclenche l'enchaînement paiement → commande) ---- */
+    echo '<div class="row" style="border-top:1px solid #eee;padding-top:16px;margin-top:18px">';
     echo '<div class="fld"><label>Statut</label><select name="statut_client">';
     foreach (iac_client_statuts() as $s) echo '<option ' . selected($get('statut_client', 'Prospect'), $s, false) . '>' . esc_html($s) . '</option>';
     echo '</select></div>';
