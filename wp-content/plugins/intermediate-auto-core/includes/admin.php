@@ -433,8 +433,8 @@ function iac_page_list() {
         $is  = ($orderby === $key);
         $dir = ($is && $order === 'asc') ? 'desc' : 'asc';
         $url = add_query_arg(array('orderby' => $key, 'order' => $dir, 'marque' => $f_marque, 'modele' => $f_modele, 's' => $search), $base);
-        $arrow = $is ? ($order === 'asc' ? ' ▲' : ' ▼') : '';
-        return '<th' . ($style ? ' style="' . $style . '"' : '') . '><a href="' . esc_url($url) . '" style="text-decoration:none;color:inherit;font-weight:' . ($is ? '700' : '600') . '">' . esc_html($label) . $arrow . '</a></th>';
+        $arrow = $is ? ($order === 'asc' ? ' ▲' : ' ▼') : ' <span style="color:#aaa">⇅</span>';
+        return '<th' . ($style ? ' style="' . $style . '"' : '') . '><a href="' . esc_url($url) . '" title="Trier par ' . esc_attr(mb_strtolower($label)) . '" style="display:block;cursor:pointer;color:inherit;font-weight:' . ($is ? '700' : '600') . '">' . esc_html($label) . $arrow . '</a></th>';
     };
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
