@@ -226,6 +226,7 @@ function ia_get_vehicles($args = array()) {
         'limit'    => 0,
         'status'   => '',
         'marque'   => '',
+        'modele'   => '',
         'carrosserie' => '',
         'search'   => '',
         'featured' => null,
@@ -241,20 +242,34 @@ function ia_get_vehicles($args = array()) {
     $params = array();
     if ($args['status'] !== '') { $where[] = 'statut = %s'; $params[] = $args['status']; }
     if ($args['marque'] !== '') { $where[] = 'marque = %s'; $params[] = $args['marque']; }
+    if ($args['modele'] !== '') { $where[] = 'modele = %s'; $params[] = $args['modele']; }
     if ($args['carrosserie'] !== '') { $where[] = 'carrosserie = %s'; $params[] = $args['carrosserie']; }
     if ($args['featured'] !== null) { $where[] = 'featured = %d'; $params[] = (int)$args['featured']; }
     if ($args['visible'] !== null) { $where[] = 'visible = %d'; $params[] = (int)$args['visible']; }
     if ($args['search'] !== '') {
         $like = '%' . $wpdb->esc_like($args['search']) . '%';
-        $where[] = '(marque LIKE %s OR modele LIKE %s OR version LIKE %s)';
-        array_push($params, $like, $like, $like);
+        $where[] = '(marque LIKE %s OR modele LIKE %s OR version LIKE %s OR couleur LIKE %s)';
+        array_push($params, $like, $like, $like, $like);
     }
 
-    $allowed_orderby = array('created_at','prix','marque','modele','id');
-    $orderby = in_array($args['orderby'], $allowed_orderby, true) ? $args['orderby'] : 'created_at';
+    // Colonnes triables (clé => expression SQL ; « vehicule » = marque puis modèle)
     $order   = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+    $sortable = array(
+        'created_at' => "created_at {$order}",
+        'prix'       => "prix {$order}",
+        'marque'     => "marque {$order}",
+        'modele'     => "modele {$order}",
+        'id'         => "id {$order}",
+        'vehicule'   => "marque {$order}, modele {$order}, version {$order}",
+        'boite'      => "boite {$order}",
+        'couleur'    => "couleur {$order}",
+        'douane'     => "douane_min {$order}, douane_max {$order}",
+        'statut'     => "statut {$order}",
+        'created_by' => "created_by {$order}, created_at {$order}",
+    );
+    $orderby_sql = isset($sortable[$args['orderby']]) ? $sortable[$args['orderby']] : $sortable['created_at'];
 
-    $sql = "SELECT * FROM {$table} WHERE " . implode(' AND ', $where) . " ORDER BY {$orderby} {$order}";
+    $sql = "SELECT * FROM {$table} WHERE " . implode(' AND ', $where) . " ORDER BY {$orderby_sql}";
     if ((int)$args['limit'] > 0) $sql .= ' LIMIT ' . (int)$args['limit'];
 
     if ($params) $sql = $wpdb->prepare($sql, $params);

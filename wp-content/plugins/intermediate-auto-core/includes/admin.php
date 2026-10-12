@@ -411,7 +411,31 @@ function iac_page_dashboard() {
  *  PAGE : Liste des véhicules
  * ============================================================ */
 function iac_page_list() {
-    $vehicles = ia_get_vehicles(array('orderby' => 'id', 'order' => 'DESC'));
+    // Filtres (marque, modèle) + tri sur colonne
+    $f_marque = isset($_GET['marque']) ? sanitize_text_field(wp_unslash($_GET['marque'])) : '';
+    $f_modele = isset($_GET['modele']) ? sanitize_text_field(wp_unslash($_GET['modele'])) : '';
+    $search   = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+    $orderby  = isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : 'id';
+    $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'asc' : 'desc';
+    $vehicles = ia_get_vehicles(array('orderby' => $orderby, 'order' => $order, 'marque' => $f_marque, 'modele' => $f_modele, 'search' => $search));
+
+    // Listes déroulantes : marques existantes, modèles (de la marque choisie le cas échéant)
+    global $wpdb;
+    $tbl = iac_table();
+    $marques = $wpdb->get_col("SELECT DISTINCT marque FROM {$tbl} WHERE marque <> '' ORDER BY marque ASC");
+    $modeles = $f_marque !== ''
+        ? $wpdb->get_col($wpdb->prepare("SELECT DISTINCT modele FROM {$tbl} WHERE modele <> '' AND marque = %s ORDER BY modele ASC", $f_marque))
+        : $wpdb->get_col("SELECT DISTINCT modele FROM {$tbl} WHERE modele <> '' ORDER BY modele ASC");
+
+    // En-tête de colonne triable
+    $base = admin_url('admin.php?page=vehicules&tab=list');
+    $th = function($label, $key, $style = '') use ($base, $orderby, $order, $f_marque, $f_modele, $search) {
+        $is  = ($orderby === $key);
+        $dir = ($is && $order === 'asc') ? 'desc' : 'asc';
+        $url = add_query_arg(array('orderby' => $key, 'order' => $dir, 'marque' => $f_marque, 'modele' => $f_modele, 's' => $search), $base);
+        $arrow = $is ? ($order === 'asc' ? ' ▲' : ' ▼') : '';
+        return '<th' . ($style ? ' style="' . $style . '"' : '') . '><a href="' . esc_url($url) . '" style="text-decoration:none;color:inherit;font-weight:' . ($is ? '700' : '600') . '">' . esc_html($label) . $arrow . '</a></th>';
+    };
     iac_admin_style();
     echo '<div class="wrap iac-wrap">';
     echo '<div class="iac-head"><h1>Véhicules</h1>';
@@ -423,8 +447,24 @@ function iac_page_list() {
         if (isset($m[$k])) echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($m[$k]) . '</p></div>';
     }
 
+    // Filtres marque / modèle
+    echo '<form method="get" style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">';
+    echo '<input type="hidden" name="page" value="vehicules"><input type="hidden" name="tab" value="list">';
+    echo '<input type="hidden" name="orderby" value="' . esc_attr($orderby) . '"><input type="hidden" name="order" value="' . esc_attr($order) . '">';
+    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher (marque, modèle, version, couleur…)" style="width:300px">';
+    echo '<select name="marque"><option value="">Toutes les marques</option>';
+    foreach ($marques as $m) echo '<option ' . selected($f_marque, $m, false) . '>' . esc_html($m) . '</option>';
+    echo '</select>';
+    echo '<select name="modele"><option value="">Tous les modèles</option>';
+    foreach ($modeles as $m) echo '<option ' . selected($f_modele, $m, false) . '>' . esc_html($m) . '</option>';
+    echo '</select>';
+    echo '<button class="button">Rechercher</button>';
+    if ($f_marque !== '' || $f_modele !== '' || $search !== '') echo '<a class="button" href="' . esc_url(add_query_arg(array('orderby' => $orderby, 'order' => $order), $base)) . '">Réinitialiser</a>';
+    echo '<span style="color:#777;margin-left:auto">' . count($vehicles) . ' véhicule' . (count($vehicles) > 1 ? 's' : '') . '</span>';
+    echo '</form>';
+
     echo '<table class="wp-list-table widefat fixed striped">';
-    echo '<thead><tr><th style="width:80px">Photo</th><th>Véhicule</th><th>Boîte</th><th>Couleur</th><th>Prix</th><th>Douane</th><th>Statut</th><th>Créé par</th><th style="width:140px">Actions</th></tr></thead><tbody>';
+    echo '<thead><tr><th style="width:80px">Photo</th>' . $th('Véhicule', 'vehicule') . $th('Boîte', 'boite') . $th('Couleur', 'couleur') . $th('Prix', 'prix') . $th('Douane', 'douane') . $th('Statut', 'statut') . $th('Créé par', 'created_by') . '<th style="width:140px">Actions</th></tr></thead><tbody>';
 
     if (!$vehicles) {
         echo '<tr><td colspan="9">Aucun véhicule. <a href="' . esc_url(admin_url('admin.php?page=vehicules&tab=edit')) . '">Ajoutez-en un</a>.</td></tr>';
