@@ -601,13 +601,16 @@ function iac_page_edit($mode = 'standard') {
         echo '<span style="color:#777;font-size:12px">Décochez pour un véhicule privé, non publié dans le catalogue.</span></div><div class="fld"></div></div>';
     }
 
-    echo '<div class="iac-fiscal" style="' . ($is_visible ? 'display:none' : '') . '">';
-    echo '<h2 style="font-size:16px;margin:8px 0 6px;border-top:1px solid #eee;padding-top:16px">Informations fiscales <span style="font-weight:400;color:#999">(véhicule non affiché)</span></h2>';
-    echo '<div class="row">';
-    echo '<div class="fld"><label>NIF</label><input type="text" name="nif" value="' . esc_attr($get('nif')) . '"></div>';
-    echo '<div class="fld"><label>Article d\'imposition</label><input type="text" name="article_imposition" value="' . esc_attr($get('article_imposition')) . '"></div>';
-    echo '<div class="fld"><label>Nom d\'imposition</label><input type="text" name="nom_imposition" value="' . esc_attr($get('nom_imposition')) . '"></div>';
-    echo '</div></div>';
+    // Informations fiscales : pas pour les voitures de moins de 3 ans
+    if (!$is3) {
+        echo '<div class="iac-fiscal" style="' . ($is_visible ? 'display:none' : '') . '">';
+        echo '<h2 style="font-size:16px;margin:8px 0 6px;border-top:1px solid #eee;padding-top:16px">Informations fiscales <span style="font-weight:400;color:#999">(véhicule non affiché)</span></h2>';
+        echo '<div class="row">';
+        echo '<div class="fld"><label>NIF</label><input type="text" name="nif" value="' . esc_attr($get('nif')) . '"></div>';
+        echo '<div class="fld"><label>Article d\'imposition</label><input type="text" name="article_imposition" value="' . esc_attr($get('article_imposition')) . '"></div>';
+        echo '<div class="fld"><label>Nom d\'imposition</label><input type="text" name="nom_imposition" value="' . esc_attr($get('nom_imposition')) . '"></div>';
+        echo '</div></div>';
+    }
 
     // Marque + Modèle
     echo '<div class="row">';
