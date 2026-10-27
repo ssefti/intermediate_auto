@@ -410,6 +410,7 @@ function livraison_page_bon() {
                     echo '<div class="l"><span>Modèle</span><b>' . esc_html(ia_vehicle_title($veh)) . '</b></div>';
                     if ($veh->carburant) echo '<div class="l"><span>Carburant</span><span>' . esc_html($veh->carburant) . '</span></div>';
                     if ($veh->boite)     echo '<div class="l"><span>Boîte</span><span>' . esc_html($veh->boite) . '</span></div>';
+                    if (!empty($veh->origine)) echo '<div class="l"><span>Origine</span><span>' . esc_html($veh->origine) . '</span></div>';
                 } else { echo '<div class="l"><span>Véhicule</span><span>—</span></div>'; }
                 if ($c->couleur) echo '<div class="l"><span>Couleur</span><span>' . esc_html($c->couleur) . '</span></div>';
                 ?>

@@ -326,12 +326,7 @@ function devis_page_edit() {
     echo '</select></div>';
     echo '<div class="fld"><label>Véhicule</label><select id="devis_vehicule" name="vehicule_id" required>';
     echo '<option value="">— Choisir un véhicule —</option>';
-    if (function_exists('ia_get_vehicles')) {
-        foreach (ia_get_vehicles(array('orderby' => 'marque', 'order' => 'ASC')) as $vv) {
-            $vprix = (int)$vv->prix * 10000;
-            echo '<option value="' . (int)$vv->id . '" data-prix="' . esc_attr($vprix) . '" ' . selected((int)$get('vehicule_id', 0), (int)$vv->id, false) . '>' . esc_html(ia_vehicle_title($vv)) . '</option>';
-        }
-    }
+    if (function_exists('iac_vehicle_options')) echo iac_vehicle_options((int)$get('vehicule_id', 0));
     echo '</select></div>';
     echo '</div>';
 

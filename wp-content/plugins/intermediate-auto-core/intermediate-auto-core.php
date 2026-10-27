@@ -9,7 +9,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('IAC_VER', '1.7');
+define('IAC_VER', '1.8');
 define('IAC_DIR', plugin_dir_path(__FILE__));
 define('IAC_URL', plugin_dir_url(__FILE__));
 
@@ -154,6 +154,8 @@ function iac_columns_ext() {
         'article_imposition' => "VARCHAR(60) NOT NULL DEFAULT ''",
         'nom_imposition'     => "VARCHAR(160) NOT NULL DEFAULT ''",
         'prix_achat'         => "DECIMAL(12,2) NULL DEFAULT NULL", // $ ; NULL = ancien véhicule (prix conservé)
+        'categorie'          => "VARCHAR(20) NOT NULL DEFAULT 'standard'", // 'standard' | 'moins3ans'
+        'origine'            => "VARCHAR(30) NOT NULL DEFAULT ''",          // Coréenne | Chinoise | Européenne
     );
 }
 
@@ -227,6 +229,7 @@ function ia_get_vehicles($args = array()) {
         'status'   => '',
         'marque'   => '',
         'modele'   => '',
+        'categorie' => null,
         'carrosserie' => '',
         'search'   => '',
         'featured' => null,
@@ -242,6 +245,7 @@ function ia_get_vehicles($args = array()) {
     $params = array();
     if ($args['status'] !== '') { $where[] = 'statut = %s'; $params[] = $args['status']; }
     if ($args['marque'] !== '') { $where[] = 'marque = %s'; $params[] = $args['marque']; }
+    if ($args['categorie'] !== null) { $where[] = 'categorie = %s'; $params[] = $args['categorie']; }
     if ($args['modele'] !== '') { $where[] = 'modele = %s'; $params[] = $args['modele']; }
     if ($args['carrosserie'] !== '') { $where[] = 'carrosserie = %s'; $params[] = $args['carrosserie']; }
     if ($args['featured'] !== null) { $where[] = 'featured = %d'; $params[] = (int)$args['featured']; }
@@ -263,6 +267,7 @@ function ia_get_vehicles($args = array()) {
         'vehicule'   => "marque {$order}, modele {$order}, version {$order}",
         'boite'      => "boite {$order}",
         'couleur'    => "couleur {$order}",
+        'origine'    => "origine {$order}",
         'douane'     => "douane_min {$order}, douane_max {$order}",
         'statut'     => "statut {$order}",
         'created_by' => "created_by {$order}, created_at {$order}",
