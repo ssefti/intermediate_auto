@@ -234,7 +234,7 @@ function devis_page_section() {
 function devis_page_list() {
     $statut = isset($_GET['statut']) ? sanitize_text_field(wp_unslash($_GET['statut'])) : '';
     $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
-    $devis  = devis_get_all(array('statut' => $statut, 'search' => $search));
+    $devis  = devis_get_all(array('statut' => $statut, 'search' => '')); // recherche : filtre instantané
     $can_edit = acces_can_edit('devis');
 
     iac_admin_style();
@@ -259,6 +259,10 @@ function devis_page_list() {
         echo '<a href="' . esc_url($url) . '" style="' . $style . ';margin-right:14px">' . esc_html($lbl) . '</a>';
     }
     echo '</p>';
+    echo '<form method="get" style="margin-bottom:16px"><input type="hidden" name="page" value="devis">';
+    if ($statut !== '') echo '<input type="hidden" name="statut" value="' . esc_attr($statut) . '">';
+    echo '<input type="search" name="s" value="' . esc_attr($search) . '" ' . 'placeholder="Rechercher dans toutes les colonnes…" style="width:300px">';
+    echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
     echo '<thead><tr><th style="width:130px">N°</th><th>Client</th><th>Véhicule</th><th>Montant estimé</th><th>Statut</th><th>Créé par</th><th style="width:280px">Actions</th></tr></thead><tbody>';
@@ -295,6 +299,7 @@ function devis_page_list() {
         }
     }
     echo '</tbody></table></div>';
+    iac_search_script();
 }
 
 /* ============================================================

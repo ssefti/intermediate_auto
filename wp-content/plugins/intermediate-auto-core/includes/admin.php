@@ -74,6 +74,63 @@ function iac_page_vehicles_section() {
     }
 }
 
+
+/**
+ * Recherche instantanée : le champ « s » filtre les lignes du tableau en cherchant dans
+ * TOUTES les colonnes affichées (hors « Actions »), sans tenir compte des accents ni de la casse.
+ * Plusieurs mots = tous doivent être présents. Appeler après l'affichage du tableau.
+ */
+function iac_search_script() {
+    ?>
+    <script>
+    (function(){
+      var input = document.querySelector('.iac-wrap input[type=search][name=s]');
+      var table = document.querySelector('.iac-wrap table.wp-list-table');
+      if (!input || !table) return;
+      var norm = function(t){
+        return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+      };
+      // Colonne « Actions » exclue de la recherche
+      var skip = -1;
+      table.querySelectorAll('thead th').forEach(function(th, i){ if (norm(th.textContent) === 'actions') skip = i; });
+      var rows = [];
+      table.querySelectorAll('tbody tr').forEach(function(tr){
+        var cells = tr.querySelectorAll('td');
+        if (cells.length < 2) return; // ligne « Aucun … »
+        var txt = '';
+        cells.forEach(function(td, i){ if (i !== skip) txt += ' ' + td.textContent; });
+        txt = norm(txt);
+        rows.push({ tr: tr, txt: txt, flat: txt.replace(/ /g, '') });
+      });
+      var none = document.createElement('tr');
+      none.innerHTML = '<td colspan="' + table.querySelectorAll('thead th').length + '" style="color:#777">Aucun résultat pour cette recherche.</td>';
+      none.style.display = 'none';
+      table.querySelector('tbody').appendChild(none);
+      var count = document.getElementById('iac-count');
+
+      function apply(){
+        var terms = norm(input.value).split(' ').filter(Boolean), shown = 0;
+        rows.forEach(function(r){
+          var ok = terms.every(function(t){ return r.txt.indexOf(t) !== -1 || r.flat.indexOf(t) !== -1; });
+          r.tr.style.display = ok ? '' : 'none';
+          if (ok) shown++;
+        });
+        none.style.display = (rows.length && !shown) ? '' : 'none';
+        if (count) count.textContent = shown + ' ' + (shown > 1 ? count.getAttribute('data-many') : count.getAttribute('data-one'));
+        // Les liens de tri conservent la recherche en cours
+        table.querySelectorAll('thead a[href]').forEach(function(a){
+          try { var u = new URL(a.href); u.searchParams.set('s', input.value); a.href = u.toString(); } catch (e) {}
+        });
+      }
+      input.addEventListener('input', apply);
+      if (input.form) input.form.addEventListener('submit', function(e){ e.preventDefault(); apply(); });
+      apply();
+    })();
+    </script>
+    <?php
+}
+
 /**
  * <option> des véhicules regroupés en deux choix : « Voitures neuves » / « Voitures moins de 3 ans »
  * (data-prix = prix en DA pour le pré-remplissage des commandes et devis).
@@ -477,7 +534,7 @@ function iac_page_list($mode = 'standard') {
     $search   = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
     $orderby  = isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : 'id';
     $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'asc' : 'desc';
-    $vehicles = ia_get_vehicles(array('orderby' => $orderby, 'order' => $order, 'marque' => $f_marque, 'modele' => $f_modele, 'search' => $search, 'categorie' => $cat));
+    $vehicles = ia_get_vehicles(array('orderby' => $orderby, 'order' => $order, 'marque' => $f_marque, 'modele' => $f_modele, 'search' => '', 'categorie' => $cat)); // recherche : filtre instantané (iac_search_script)
 
     // Listes déroulantes : marques existantes, modèles (de la marque choisie le cas échéant)
     global $wpdb;
@@ -511,7 +568,7 @@ function iac_page_list($mode = 'standard') {
     echo '<form method="get" style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">';
     echo '<input type="hidden" name="page" value="' . esc_attr($page) . '"><input type="hidden" name="tab" value="list">';
     echo '<input type="hidden" name="orderby" value="' . esc_attr($orderby) . '"><input type="hidden" name="order" value="' . esc_attr($order) . '">';
-    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher (marque, modèle, version, couleur…)" style="width:300px">';
+    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher dans toutes les colonnes…" style="width:300px">';
     echo '<select name="marque"><option value="">Toutes les marques</option>';
     foreach ($marques as $m) echo '<option ' . selected($f_marque, $m, false) . '>' . esc_html($m) . '</option>';
     echo '</select>';
@@ -520,7 +577,7 @@ function iac_page_list($mode = 'standard') {
     echo '</select>';
     echo '<button class="button">Rechercher</button>';
     if ($f_marque !== '' || $f_modele !== '' || $search !== '') echo '<a class="button" href="' . esc_url(add_query_arg(array('orderby' => $orderby, 'order' => $order), $base)) . '">Réinitialiser</a>';
-    echo '<span style="color:#777;margin-left:auto">' . count($vehicles) . ' véhicule' . (count($vehicles) > 1 ? 's' : '') . '</span>';
+    echo '<span id="iac-count" data-one="véhicule" data-many="véhicules" style="color:#777;margin-left:auto">' . count($vehicles) . ' véhicule' . (count($vehicles) > 1 ? 's' : '') . '</span>';
     echo '</form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
@@ -549,6 +606,7 @@ function iac_page_list($mode = 'standard') {
         }
     }
     echo '</tbody></table></div>';
+    iac_search_script();
 }
 
 /** Sélecteur multi-images réutilisable (liste d'IDs séparés par des virgules) */

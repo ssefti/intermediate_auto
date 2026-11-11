@@ -299,7 +299,7 @@ function commande_export() {
 function commandes_page_list() {
     $statut   = isset($_GET['statut']) ? sanitize_text_field(wp_unslash($_GET['statut'])) : '';
     $search   = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
-    $commandes = commandes_get_all(array('statut' => $statut, 'search' => $search));
+    $commandes = commandes_get_all(array('statut' => $statut, 'search' => '')); // recherche : filtre instantané
 
     $can_edit = acces_can_edit('commandes');
     iac_admin_style();
@@ -326,7 +326,7 @@ function commandes_page_list() {
     }
     echo '</p>';
     echo '<form method="get" style="margin-bottom:16px"><input type="hidden" name="page" value="commandes">';
-    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher (n° commande, couleur…)" style="width:300px">';
+    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher dans toutes les colonnes…" style="width:300px">';
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
@@ -357,6 +357,7 @@ function commandes_page_list() {
         }
     }
     echo '</tbody></table></div>';
+    iac_search_script();
 }
 
 /* ============================================================

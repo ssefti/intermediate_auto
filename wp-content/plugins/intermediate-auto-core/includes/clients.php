@@ -272,7 +272,7 @@ function iac_page_clients_list() {
     $search  = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
     $clients = iac_get_clients(array(
         'active'  => ($f_active === '' ? null : $f_active),
-        'search'  => $search,
+        'search'  => '', // recherche : filtre instantané (iac_search_script)
         'orderby' => 'id', 'order' => 'DESC',
     ));
 
@@ -307,7 +307,7 @@ function iac_page_clients_list() {
     }
     echo '</p>';
     echo '<form method="get" style="margin-bottom:16px"><input type="hidden" name="page" value="ia-clients">';
-    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher un client (nom, téléphone, email…)" style="width:320px">';
+    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher dans toutes les colonnes…" style="width:320px">';
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
@@ -343,6 +343,7 @@ function iac_page_clients_list() {
         }
     }
     echo '</tbody></table></div>';
+    iac_search_script();
 }
 
 /* ============================================================

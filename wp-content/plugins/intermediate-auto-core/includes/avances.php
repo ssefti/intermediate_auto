@@ -445,7 +445,7 @@ function avance_page_recu() {
 function avances_page_list() {
     $statut  = isset($_GET['statut']) ? sanitize_text_field(wp_unslash($_GET['statut'])) : '';
     $search  = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
-    $avances = avances_get_all(array('statut' => $statut, 'search' => $search));
+    $avances = avances_get_all(array('statut' => $statut, 'search' => '')); // recherche : filtre instantané
     $total   = avances_total('Encaissée');
 
     $can_edit = acces_can_edit('avances');
@@ -484,7 +484,7 @@ function avances_page_list() {
     }
     echo '</p>';
     echo '<form method="get" style="margin-bottom:16px"><input type="hidden" name="page" value="avances">';
-    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher (référence, note…)" style="width:300px">';
+    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher dans toutes les colonnes…" style="width:300px">';
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
@@ -536,6 +536,7 @@ function avances_page_list() {
         }
     }
     echo '</tbody></table></div>';
+    iac_search_script();
 }
 
 /* ============================================================

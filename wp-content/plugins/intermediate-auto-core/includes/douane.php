@@ -181,7 +181,7 @@ function douane_notice() {
  * ============================================================ */
 function douane_page_list() {
     $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
-    $rows   = douanes_get_all(array('search' => $search));
+    $rows   = douanes_get_all(array('search' => '')); // recherche : filtre instantané
     $can_edit = acces_can_edit('douane');
 
     iac_admin_style();
@@ -192,7 +192,7 @@ function douane_page_list() {
     douane_notice();
 
     echo '<form method="get" style="margin-bottom:16px"><input type="hidden" name="page" value="douane">';
-    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher (n° bon de douane)" style="width:300px">';
+    echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Rechercher dans toutes les colonnes…" style="width:300px">';
     echo ' <button class="button">Rechercher</button></form>';
 
     echo '<table class="wp-list-table widefat fixed striped">';
@@ -219,6 +219,7 @@ function douane_page_list() {
         }
     }
     echo '</tbody></table></div>';
+    iac_search_script();
 }
 
 /* ============================================================
