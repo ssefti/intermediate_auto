@@ -20,7 +20,7 @@ function commandes_table() {
     return $wpdb->prefix . 'commandes';
 }
 
-function commande_statuts() { return array('En cours', 'Confirmée', 'Livrée', 'Annulée'); }
+function commande_statuts() { return array('En cours', 'Confirmée', 'Soldée', 'Livrée', 'Annulée'); }
 function commande_modes()   { return array('Espèces', 'Chèque', 'Virement', 'Versement bancaire', 'Crédit', 'Autre'); }
 
 /** Formate un montant en DA */
@@ -116,6 +116,22 @@ function commande_prix_net($c) {
 /** Reste à payer d'une commande (sur le prix après remise) */
 function commande_reste($c) {
     return max(0, commande_prix_net($c) - commande_avance_effective($c));
+}
+
+/**
+ * Met à jour le statut selon les paiements : « Soldée » quand le reste à payer est nul,
+ * et retour à « Confirmée » si un paiement est modifié/supprimé et qu'il reste un solde.
+ * Ne touche pas aux commandes « Livrée » ou « Annulée ».
+ */
+function commande_refresh_solde($cid) {
+    $c = commande_get($cid);
+    if (!$c || !in_array($c->statut, array('En cours', 'Confirmée', 'Soldée'), true)) return;
+    $solde = commande_prix_net($c) > 0 && commande_reste($c) <= 0;
+    $new   = $solde ? 'Soldée' : ($c->statut === 'Soldée' ? 'Confirmée' : $c->statut);
+    if ($new !== $c->statut) {
+        global $wpdb;
+        $wpdb->update(commandes_table(), array('statut' => $new, 'updated_at' => current_time('mysql')), array('id' => (int)$cid));
+    }
 }
 
 /** IDs des pièces jointes du dossier véhicule */
@@ -227,6 +243,7 @@ function commande_save() {
 
     // Avance saisie → paiement lié (création / mise à jour / suppression)
     commande_sync_avance_paiement($id, $avance, $data['mode_paiement']);
+    commande_refresh_solde($id);
 
     wp_safe_redirect(admin_url('admin.php?page=commandes&view=' . $id . '&iac_msg=csaved'));
     exit;
@@ -339,7 +356,7 @@ function commandes_page_list() {
             $bon  = admin_url('admin.php?page=commandes&view=' . $c->id);
             $edit = admin_url('admin.php?page=commandes&tab=edit&id=' . $c->id);
             $del  = wp_nonce_url(admin_url('admin-post.php?action=commande_delete&id=' . $c->id), 'commande_delete_' . $c->id);
-            $pill = ($c->statut === 'Confirmée' || $c->statut === 'Livrée') ? 'ok' : ($c->statut === 'Annulée' ? 'sold' : 'cmd');
+            $pill = ($c->statut === 'Confirmée' || $c->statut === 'Soldée' || $c->statut === 'Livrée') ? 'ok' : ($c->statut === 'Annulée' ? 'sold' : 'cmd');
             $client = '—'; if ($c->client_id && function_exists('iac_get_client')) { $cl = iac_get_client($c->client_id); if ($cl) $client = iac_client_name($cl); }
             $veh = ''; if ($c->vehicule_id && function_exists('ia_get_vehicle')) { $vv = ia_get_vehicle($c->vehicule_id); if ($vv) $veh = ia_vehicle_title($vv); }
             echo '<tr>';

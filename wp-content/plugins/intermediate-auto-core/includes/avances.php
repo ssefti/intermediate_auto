@@ -216,6 +216,17 @@ function avance_save() {
         'updated_at'    => current_time('mysql'),
     );
 
+    // Lien avec la commande : doit appartenir au client ; obligatoire pour un solde / paiement partiel
+    $back = admin_url('admin.php?page=avances&tab=edit' . ($id ? '&id=' . $id : '') . '&client_id=' . (int)$data['client_id']);
+    if ($data['commande_id']) {
+        $cm = function_exists('commande_get') ? commande_get($data['commande_id']) : null;
+        if (!$cm || (int)$cm->client_id !== (int)$data['client_id']) { wp_safe_redirect($back . '&iac_msg=aerr_client'); exit; }
+        $data['vehicule_id'] = (int)$cm->vehicule_id;
+    } elseif (in_array($data['type_paiement'], array('Solde', 'Paiement partiel'), true)) {
+        wp_safe_redirect($back . '&iac_msg=aerr_commande'); exit;
+    }
+    $old_commande = ($id > 0 && ($old = avance_get($id))) ? (int)$old->commande_id : 0;
+
     if ($id > 0) {
         $wpdb->update(avances_table(), $data, array('id' => $id));
         $msg = 'aupdated';
@@ -225,6 +236,11 @@ function avance_save() {
         $wpdb->insert(avances_table(), $data);
         $id  = (int)$wpdb->insert_id;
         $msg = 'acreated';
+    }
+    // Statut des commandes concernées (« Soldée » quand il n'y a plus de reste à payer)
+    if (function_exists('commande_refresh_solde')) {
+        if ($data['commande_id']) commande_refresh_solde($data['commande_id']);
+        if ($old_commande && $old_commande !== (int)$data['commande_id']) commande_refresh_solde($old_commande);
     }
     // Flux « nouveau client » : après le paiement, on enchaîne sur la commande associée
     if (!empty($_POST['flow_client']) && $msg === 'acreated' && $data['client_id'] && function_exists('iac_clients_table')) {
@@ -248,7 +264,9 @@ function avance_delete() {
     check_admin_referer('avance_delete_' . $id);
     if ($id > 0) {
         global $wpdb;
+        $del = avance_get($id);
         $wpdb->delete(avances_table(), array('id' => $id));
+        if ($del && (int)$del->commande_id && function_exists('commande_refresh_solde')) commande_refresh_solde((int)$del->commande_id);
     }
     wp_safe_redirect(admin_url('admin.php?page=avances&iac_msg=adeleted'));
     exit;
@@ -572,8 +590,15 @@ function avance_page_edit() {
         echo '<p style="margin:0 0 16px;padding:10px 14px;background:#eef7ee;border-radius:8px;color:#2d6a2d">Client créé. Enregistrez maintenant son paiement : la commande associée sera ensuite créée.</p>';
     }
 
-    // Client (le paiement précède la commande : le lien commande est conservé en champ masqué)
-    echo '<input type="hidden" name="commande_id" value="' . (int)$cur_commande . '">';
+    // Messages d'erreur (retour de validation)
+    if (isset($_GET['iac_msg'])) {
+        $em = array('aerr_commande' => 'Un solde ou un paiement partiel doit être rattaché à une commande : choisissez la commande à solder.',
+                    'aerr_client'   => 'La commande choisie n\'appartient pas à ce client.');
+        $ek = sanitize_key($_GET['iac_msg']);
+        if (isset($em[$ek])) echo '<div class="notice notice-error"><p>' . esc_html($em[$ek]) . '</p></div>';
+    }
+    if (!$cur_client && isset($_GET['client_id'])) $cur_client = (int)$_GET['client_id'];
+
     echo '<div class="row">';
     echo '<div class="fld"><label>Client</label><select name="client_id" required>';
     echo '<option value="">— Choisir un client —</option>';
@@ -584,25 +609,37 @@ function avance_page_edit() {
     }
     echo '</select></div>';
     echo '</div>';
-    // Si le paiement est déjà rattaché à une commande : rappel du solde
-    $cmd_info = ($cur_commande && function_exists('commande_get')) ? commande_get($cur_commande) : null;
-    if ($cmd_info) {
-        $c_total = commande_prix_net($cmd_info);
-        $c_paid  = function_exists('avances_sum_for_commande') ? avances_sum_for_commande($cmd_info->id) : 0;
-        $c_reste = commande_reste($cmd_info);
-        echo '<p id="avance_solde_info" data-reste="' . esc_attr($c_reste) . '" style="margin:-6px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555">Commande ' . esc_html($cmd_info->numero) . ' — total : <strong>' . esc_html(avance_money($c_total)) . '</strong> · déjà payé : <strong>' . esc_html(avance_money($c_paid)) . '</strong> · <span style="color:#C05A00">reste : <strong>' . esc_html(avance_money($c_reste)) . '</strong></span> &nbsp;·&nbsp; <a href="#" id="avance_fill_reste">Payer le solde</a></p>';
-    }
-
     // Véhicule : déduit de la commande → champ masqué (valeur existante conservée)
     echo '<input type="hidden" name="vehicule_id" value="' . esc_attr((int)$get('vehicule_id', 0)) . '">';
 
     // Type + montant + date
     echo '<div class="row">';
-    echo '<div class="fld"><label>Type de paiement</label><select name="type_paiement">';
-    foreach (avance_types() as $t) echo '<option ' . selected($get('type_paiement', 'Avance'), $t, false) . '>' . esc_html($t) . '</option>';
+    $cur_type = $get('type_paiement', ($pre_commande || (isset($_GET['type']) && $_GET['type'] !== '')) ? (isset($_GET['type']) ? sanitize_text_field(wp_unslash($_GET['type'])) : 'Solde') : 'Avance');
+    echo '<div class="fld"><label>Type de paiement</label><select id="avance_type" name="type_paiement">';
+    foreach (avance_types() as $t) echo '<option ' . selected($cur_type, $t, false) . '>' . esc_html($t) . '</option>';
     echo '</select></div>';
     echo '<div class="fld"><label>Montant (DA)</label><input type="number" step="0.01" min="0" id="avance_montant" name="montant" value="' . esc_attr($get('montant', '')) . '" required></div>';
     echo '<div class="fld"><label>Date du paiement</label><input type="date" name="date_avance" value="' . esc_attr(($get('date_avance') && $get('date_avance') !== '0000-00-00') ? $get('date_avance') : '') . '"></div>';
+    echo '</div>';
+
+    // Commande à solder : affichée pour un solde / paiement partiel / autre, ou si le paiement est déjà lié.
+    // Un « Avance » sans commande déclenche, lui, la création de la commande.
+    echo '<div id="avance_commande_wrap" style="display:none">';
+    echo '<div class="row"><div class="fld"><label>Commande à solder <span id="avance_cmd_req" style="color:#d63638">*</span></label><select id="avance_commande" name="commande_id">';
+    echo '<option value="0">— Aucune —</option>';
+    if (function_exists('commandes_get_all')) {
+        foreach (commandes_get_all() as $cmd) {
+            if ($cmd->statut === 'Annulée' && (int)$cmd->id !== $cur_commande) continue;
+            $lbl = $cmd->numero;
+            if ($cmd->client_id && function_exists('iac_get_client')) { $ccl = iac_get_client($cmd->client_id); if ($ccl) $lbl .= ' — ' . iac_client_name($ccl); }
+            $c_total = commande_prix_net($cmd);
+            $c_paid  = function_exists('avances_sum_for_commande') ? avances_sum_for_commande($cmd->id) : 0;
+            $c_reste = commande_reste($cmd);
+            echo '<option value="' . (int)$cmd->id . '" data-client="' . (int)$cmd->client_id . '" data-total="' . esc_attr($c_total) . '" data-paid="' . esc_attr($c_paid) . '" data-reste="' . esc_attr($c_reste) . '" ' . selected($cur_commande, (int)$cmd->id, false) . '>' . esc_html($lbl . ' (reste ' . avance_money($c_reste) . ')') . '</option>';
+        }
+    }
+    echo '</select></div></div>';
+    echo '<p id="avance_solde_info" style="margin:-6px 0 16px;padding:10px 14px;background:#f7f8fa;border-radius:8px;color:#555;display:none"></p>';
     echo '</div>';
 
     // Mode + référence + statut
@@ -649,11 +686,39 @@ function avance_page_edit() {
     <script>
     jQuery(function($){
       // Reste à payer de la commande liée (calcul automatique)
+      // Sélecteur de commande : visible pour solde / paiement partiel / autre (ou paiement déjà lié)
+      var editing = <?php echo (int)$id; ?> > 0, hadCmd = <?php echo (int)$cur_commande; ?> > 0;
+      var $type = $('#avance_type'), $cli = $('select[name=client_id]'), $cmd = $('#avance_commande'), $info = $('#avance_solde_info');
+      function fmtDA(n){ return (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' DA'; }
+      function syncCommande(){
+        var t = $type.val(), show = (t !== 'Avance') || editing || hadCmd;
+        $('#avance_commande_wrap').toggle(show);
+        var need = (t === 'Solde' || t === 'Paiement partiel');
+        $cmd.prop('required', need && show); $('#avance_cmd_req').toggle(need);
+        // Limite les commandes à celles du client choisi
+        var c = $cli.val();
+        $cmd.find('option').each(function(){
+          var oc = $(this).data('client'), ok = !$(this).val() || $(this).val() === '0' || !c || String(oc) === String(c);
+          $(this).prop('hidden', !ok).prop('disabled', !ok);
+        });
+        var sel = $cmd.find('option:selected');
+        if (sel.val() !== '0' && sel.prop('disabled')) $cmd.val('0');
+        showSolde();
+      }
+      function showSolde(){
+        var o = $cmd.find('option:selected');
+        if (!o.length || o.val() === '0' || o.data('total') === undefined){ $info.hide(); return; }
+        $info.html('Commande — total : <strong>'+fmtDA(o.data('total'))+'</strong> · déjà payé : <strong>'+fmtDA(o.data('paid'))+'</strong> · <span style="color:#C05A00">reste : <strong>'+fmtDA(o.data('reste'))+'</strong></span> &nbsp;·&nbsp; <a href="#" id="avance_fill_reste">Payer le solde</a>').show();
+      }
+      $type.on('change', syncCommande); $cli.on('change', syncCommande); $cmd.on('change', function(){
+        var oc = $cmd.find('option:selected').data('client'); if (oc) $cli.val(String(oc)); showSolde();
+      });
       $(document).on('click', '#avance_fill_reste', function(e){
         e.preventDefault();
-        var reste = parseFloat($('#avance_solde_info').data('reste')) || 0;
+        var reste = parseFloat($cmd.find('option:selected').data('reste')) || 0;
         if (reste > 0) $('#avance_montant').val(reste.toFixed(2));
       });
+      syncCommande();
 
       var frame;
       $('#av_att_add').on('click', function(e){
